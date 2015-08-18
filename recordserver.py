@@ -2,6 +2,7 @@ import tornado.httpserver
 import tornado.ioloop
 import tornado.options
 import tornado.web
+import json
 
 import pymongo
 
@@ -15,7 +16,7 @@ class Application(tornado.web.Application):
             (r"/dota/writeRecord", WriteRecordHandler),
             (r"/dota/readRecord", ReadRecordHandler)
             ]
-        conn = pymongo.MongoClient("192.168.1.250", 27017)
+        conn = pymongo.MongoClient("10.211.55.6", 27017)
         self.db = conn["dota"]
 
         tornado.web.Application.__init__(self, handlers, debug=True)
@@ -23,9 +24,9 @@ class Application(tornado.web.Application):
 class ReadRecordHandler(tornado.web.RequestHandler):
     def get(self):
         coll = self.application.db.user
-        print coll
+        print 'coll :', coll
         user = coll.find_one({"name": "lkj"})
-        print user
+        print 'user :', user
         if user:
             del user["_id"]
             self.write(user)
@@ -35,14 +36,32 @@ class ReadRecordHandler(tornado.web.RequestHandler):
 
 class WriteRecordHandler(tornado.web.RequestHandler):
     def get(self):
-         coll = self.application.db.user
+        coll = self.application.db.user
+        print 'coll :', coll
 
-         self.set_status(200)
-         for i in range(500):
-            result = coll.insert_one({'index':i})
-            print str(result)
-            print coll.find_one({''})
-            self.write(str(result))
+        self.set_status(200)
+
+        lenth = 0
+        # result = None
+
+        coll.ensure_index('index')
+        for i in range(10000):
+            # result = coll.insert_one({'index':i})
+            # print str(result)
+            # print coll.find_one({'index':i})
+
+            doc = coll.find_one({'index':i})
+            # print 'before dumps:',doc
+            # del doc['_id']
+
+            # doc = {'index':1, 'haha':'...'}
+            # appendstr = json.dumps(doc) + "appendstr"*1000
+            # lenth += len(appendstr)
+            # self.write(appendstr)
+            # print "lenth is", lenth
+        self.write('1')
+        # print 'result is' , str(result)
+        print "lenth is", lenth
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
