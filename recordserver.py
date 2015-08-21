@@ -6,6 +6,8 @@ import json
 
 import pymongo
 
+import pdb
+
 from tornado.options import define, options
 define("port", default=8010, help="run on the given port", type=int)
 
@@ -13,8 +15,8 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/", WriteRecordHandler),
-            (r"/dota/writeRecord", WriteRecordHandler),
-            (r"/dota/readRecord", ReadRecordHandler)
+            (r"/writeRecord", WriteRecordHandler),
+            (r"/readRecord", ReadRecordHandler)
             ]
         conn = pymongo.MongoClient("10.211.55.6", 27017)
         self.db = conn["dota"]
@@ -45,12 +47,12 @@ class WriteRecordHandler(tornado.web.RequestHandler):
         # result = None
 
         coll.ensure_index('index')
-        for i in range(10000):
-            # result = coll.insert_one({'index':i})
+        for i in range(100):
+            result = coll.insert_one({'index':i, 'index2':i, 'index3':i, 'index4':i, 'index5':"abcdefgggggg"})
             # print str(result)
             # print coll.find_one({'index':i})
 
-            doc = coll.find_one({'index':i})
+            # doc = coll.find_one({'index':i})
             # print 'before dumps:',doc
             # del doc['_id']
 
@@ -62,9 +64,13 @@ class WriteRecordHandler(tornado.web.RequestHandler):
         self.write('1')
         # print 'result is' , str(result)
         print "lenth is", lenth
+        print coll.count()
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
+
+# find_one 10000 times in 5w with index uses 2522ms
+# insert_one 10000 times in 5w(to 6w) with index uses 2662ms
