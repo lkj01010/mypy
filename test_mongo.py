@@ -13,40 +13,54 @@ var2 = [1 for _ in range(10)]
 for i, x in enumerate([1,2,3]):
     print x
 
-for k,_ in enumerate(var):
+for k, _ in enumerate(var):
     print k
 
-A,B = ['a', 'b']
+A, B = ['a', 'b']
 
 C = 'abbccdef'
 D = b"zzz".join(C)
 
-class record(object):
+TEST_COUNT = 10000
+
+
+class Record(object):
     def __init__(self):
+        self._conn = None
+        self.db = None
         pass
 
     def run(self):
         self._conn = pymongo.MongoClient("10.211.55.6", 27017)
-        self._db = self._conn.dota
+        self.db = self._conn.dota
         pass
 
     def add_batch_record(self):
 
-        for idx in range(1, 1000):
+        for idx in range(1, TEST_COUNT):
             r1 = random.uniform(1, 100)
             r2 = random.uniform(1, 100)
             r3 = random.uniform(1, 100)
             r4 = random.uniform(1, 100)
-            str = {'k1':r1, 'k2':r2, 'k3':r3, 'k4':r4}
-            self._db.user.insert_one(str)
-
+            string = {'idx': idx, 'k1': r1, 'k2': r2, 'k3': r3, 'k4': r4}
+            self.db.user.insert_one(string)
 
     def drop(self):
-        self._db.user.drop()
+        self.db.user.drop()
 
     def single_update(self):
-        for idx in range(1, 1000):
-            pass
+        for idx in range(1, TEST_COUNT):
+            self.db.user.update({'idx': idx}, {'$set': {'k1': idx}})
+
+    def multi_update(self):
+        for idx in range(1, TEST_COUNT):
+            self.db.user.update({'idx': idx}, {'$set': {'k1': idx, 'k2': idx, 'k3': idx, 'k4': idx, 'k5': idx, 'k6': idx}, }, True, True)
+
+    def test_random_read(self):
+        pass
+
+    def test_random_write(self):
+        pass
 
     def add_record(self):
         pass
@@ -56,10 +70,15 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    i = iter("abcd")
+    print i.next()
+    print i.next()
+    print i.next()
+
     tornado.options.parse_command_line()
-    r = record()
+    r = Record()
     r.run()
-    r._db.user.remove()
+    r.db.user.remove()
 
     # if options.opt == 'del':
     #     r.drop()

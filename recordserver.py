@@ -23,7 +23,11 @@ class Application(tornado.web.Application):
 
         tornado.web.Application.__init__(self, handlers, debug=True)
 
+
 class ReadRecordHandler(tornado.web.RequestHandler):
+    def data_received(self, chunk):
+        pass
+
     def get(self):
         coll = self.application.db.user
         print 'coll :', coll
@@ -36,7 +40,11 @@ class ReadRecordHandler(tornado.web.RequestHandler):
             self.set_status(404)
             self.write({"error": "user not found"})
 
+
 class WriteRecordHandler(tornado.web.RequestHandler):
+    def data_received(self, chunk):
+        pass
+
     def get(self):
         coll = self.application.db.user
         print 'coll :', coll
