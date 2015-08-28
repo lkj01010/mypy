@@ -31,7 +31,8 @@ class Record(object):
         pass
 
     def run(self):
-        self._conn = pymongo.MongoClient("10.211.55.6", 27017)
+        # self._conn = pymongo.MongoClient("10.211.55.6", 27017)
+        self._conn = pymongo.MongoClient("192.168.1.250", 27017)
         self.db = self._conn.dota
         pass
 

@@ -18,7 +18,7 @@ class Application(tornado.web.Application):
             (r"/writeRecord", WriteRecordHandler),
             (r"/readRecord", ReadRecordHandler)
             ]
-        conn = pymongo.MongoClient("10.211.55.6", 27017)
+        conn = pymongo.MongoClient("192.168.1.250", 27017)
         self.db = conn["dota"]
 
         tornado.web.Application.__init__(self, handlers, debug=True)
@@ -29,6 +29,17 @@ class ReadRecordHandler(tornado.web.RequestHandler):
         pass
 
     def get(self):
+        cb_name = self.request.query_arguments['callback']
+        replay_dict = dict()
+        replay_dict['is_ok'] = 1
+        replay_dict['record'] = dict()
+
+        print cb_name[0]
+        print str(replay_dict)
+        replay = str(cb_name[0]) + '(' + str(replay_dict) + ')'
+        self.write(replay)
+        return
+
         coll = self.application.db.user
         print 'coll :', coll
         user = coll.find_one({"name": "lkj"})
