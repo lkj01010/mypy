@@ -11,6 +11,10 @@ import pdb
 from tornado.options import define, options
 define("port", default=8010, help="run on the given port", type=int)
 
+user_cache = dict()
+user_expire_holder = list()
+
+
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
