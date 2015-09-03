@@ -4,15 +4,16 @@ import tornado.options
 import tornado.web
 import json
 
-import pymongo
-
 import pdb
+import copy
+
+from log import server_log
+import check_login
+import record
+
 
 from tornado.options import define, options
 define("port", default=8010, help="run on the given port", type=int)
-
-user_cache = dict()
-user_expire_holder = list()
 
 
 class Application(tornado.web.Application):
@@ -22,10 +23,12 @@ class Application(tornado.web.Application):
             (r"/writeRecord", WriteRecordHandler),
             (r"/readRecord", ReadRecordHandler)
             ]
-        conn = pymongo.MongoClient("192.168.1.250", 27017)
-        self.db = conn["dota"]
+        self.check_mod = check_login.CheckLogin()
+        self.record_mod = record.Record()
+        # conn = pymongo.MongoClient("192.168.1.250", 27017)
+        # self.db = conn["dota"]
 
-        tornado.web.Application.__init__(self, handlers, debug=True)
+        tornado.web.Application.__init__(self, handlers, debug=False)
 
 
 class ReadRecordHandler(tornado.web.RequestHandler):
@@ -33,34 +36,53 @@ class ReadRecordHandler(tornado.web.RequestHandler):
         pass
 
     def get(self):
-        cb_name = self.request.query_arguments['callback']
-        replay_dict = dict()
-        replay_dict['is_ok'] = 1
-        replay_dict['record'] = dict()
+        reply_dict = dict()
+        reply_dict['code'] = 0
+        reply_dict['msg'] = ''
+        reply_dict['record'] = dict()
 
-        print cb_name[0]
-        print str(replay_dict)
-        replay = str(cb_name[0]) + '(' + str(replay_dict) + ')'
-        self.write(replay)
-        return
+        try:
+            user_id = self.get_argument('userid')
+            user_key = self.get_argument('userkey')
+            cb_name = self.get_argument('callback')
+        except KeyError:
+            server_log.warning("Failed to get argument", exc_info=True)
 
-        coll = self.application.db.user
-        print 'coll :', coll
-        user = coll.find_one({"name": "lkj"})
-        print 'user :', user
-        if user:
-            del user["_id"]
-            self.write(user)
+        if self.application.check_mod.check_info(user_id, user_key):
+            reply_dict['code'] = 1
+            reply_dict['record'] = self.application.record_mod.get_record(user_id)
+
+            replay = str(cb_name) + '(' + json.dumps(reply_dict) + ')'
+            self.write(replay)
+            server_log.info(replay)
+
+            # if user:
+            #     del user["_id"]
+            #     self.write(user)
+            # else:
+            #     self.set_status(404)
+            #     self.write({"error": "user not found"})
         else:
-            self.set_status(404)
-            self.write({"error": "user not found"})
+            '''wrong user_id or user_key'''
+            return
 
 
 class WriteRecordHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
-    def get(self):
+    def get(self, *args, **kwargs):
+        replay_dict = dict()
+        replay_dict['is_ok'] = 0
+        replay_dict['msg'] = ''
+
+        user_id = self.request.query_arguments['userid']
+        user_key = self.request.query_arguments['userkey']
+
+        if self.application.check_mod.check_info(user_id, user_key):
+            self.application.reocord_mod.commit_record_item(user_id, {'test_key': 'test_key'})
+
+    def _test_get(self):
         coll = self.application.db.user
         print 'coll :', coll
 

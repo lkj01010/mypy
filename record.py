@@ -1,9 +1,14 @@
 import pymongo
+import json
 
 class Record(object):
     def __init__(self):
         conn = pymongo.MongoClient("192.168.1.250", 27017)
         self.db = conn['dota']
+        # for index in self.db.user.list_indexes():
+        #     print(index)
+        # self.db.user.drop_index('_id') #  drop '_id' is invalid
+        self.db.user.create_index('user_id')
         pass
 
     @staticmethod
@@ -42,19 +47,21 @@ class Record(object):
         return record
 
     def get_record(self, user_id):
-        replay_dict = dict()
-        replay_dict['ret_code'] = 0
-
-        find_ret = self.db.user.find_one({'id': user_id})
+        find_ret = self.db.user.find_one({'user_id': user_id})
         if find_ret:
             del find_ret['_id']
-            replay_dict['ret_code'] = 1
-            replay_dict['record'] = find_ret
-            return str(replay_dict)
+            reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
+            return reply_dict
         else:
-            return str(replay_dict)
+            record_doc = dict()
+            record_doc['user_id'] = user_id
+            record_doc['record'] = Record.default_record()
+            self.db.user.insert(record_doc)
 
-    def commit_record_item(self):
+            reply_dict = Record.default_record()
+            return reply_dict
 
-        pass
+    def commit_record_item(self, user_id, info):
+        j_info = json.JSONEncoder().encode(info)
+        self.db.update({'user_id': user_id}, j_info, True)
 
