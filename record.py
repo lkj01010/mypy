@@ -5,6 +5,7 @@ import tornado.ioloop
 import pymongo
 import json
 from log import server_log
+import copy
 
 class Record(object):
     def __init__(self, db_addr, db_port):
@@ -15,7 +16,9 @@ class Record(object):
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
         self.db.user.create_index('user_id')
         self.db_client = tornado.httpclient.AsyncHTTPClient()
+        self.is_pushing = False
         self.batch = dict()
+        self.batch_on_pushing = dict()  # cache batch using until pushing data to db complete
         pass
 
     @staticmethod
@@ -56,8 +59,10 @@ class Record(object):
     ''' return a record (dict type) '''
     def get_record(self, user_id):
         # find it from record batch first
-        if user_id in self.batch:
+        if not self.is_pushing and user_id in self.batch:
             return json.JSONDecoder().decode(self.batch[user_id])   # json to dict
+        elif self.is_pushing and user_id in self.batch_on_pushing:
+            return json.JSONDecoder().decode(self.batch_on_pushing[user_id])
         else:
             find_ret = self.db.user.find_one({'user_id': user_id})
             if find_ret:
@@ -78,17 +83,26 @@ class Record(object):
     def commit_record(self, user_id, record_str):
         # j_info = json.JSONEncoder().encode(record_str)
         # self.db.user.update({'user_id': info['user_id']}, record_str, True)
-        self.batch[user_id] = record_str
+        if not self.is_pushing:
+            self.batch[user_id] = record_str
+        else:
+            self.batch_on_pushing[user_id] = record_str
+
 
     def push_records_to_db(self):
         j_record_batch = json.JSONEncoder().encode(self.batch)
         request = tornado.httpclient.HTTPRequest('http://' + cfg.DB_SERVER_ADDR + ':' + str(cfg.DB_SERVER_PORT),
                                                  method='POST', body=j_record_batch)
-        self.db_client.fetch(request, callback=Record.push_records_to_db_callback)
-        self.batch.clear()
+        self.db_client.fetch(request, callback=self.push_records_to_db_callback)
+        self.is_pushing = True
 
-    @staticmethod
-    def push_records_to_db_callback(response):
+    # @staticmethod
+    def push_records_to_db_callback(self, response):
         # print 'syn callback', response.body
         server_log.info('syn callback' + str(response.body))
+        # manage batch for new turn
+        self.batch.clear()
+        self.batch = copy.deepcopy(self.batch_on_pushing)
+        self.batch_on_pushing.clear()
+        self.is_pushing = False
         pass

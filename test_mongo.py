@@ -1,5 +1,6 @@
 import pymongo
 import random
+import time
 
 import tornado.options
 
@@ -21,7 +22,7 @@ A, B = ['a', 'b']
 C = 'abbccdef'
 D = b"zzz".join(C)
 
-TEST_COUNT = 10000
+TEST_COUNT = 1000
 
 
 class Record(object):
@@ -31,8 +32,8 @@ class Record(object):
         pass
 
     def run(self):
-        # self._conn = pymongo.MongoClient("10.211.55.6", 27017)
-        self._conn = pymongo.MongoClient("192.168.1.250", 27017)
+        self._conn = pymongo.MongoClient("10.211.55.6", 27017)
+        # self._conn = pymongo.MongoClient("192.168.1.250", 27017)
         self.db = self._conn.dota
         pass
 
@@ -50,12 +51,18 @@ class Record(object):
         self.db.user.drop()
 
     def single_update(self):
-        for idx in range(1, TEST_COUNT):
-            self.db.user.update({'idx': idx}, {'$set': {'k1': idx}})
+        for idx in xrange(1, TEST_COUNT):
+            self.db.user.update({'idx': idx}, {'$set': {'k1': idx}}, True, True)
 
     def multi_update(self):
-        for idx in range(1, TEST_COUNT):
-            self.db.user.update({'idx': idx}, {'$set': {'k1': idx, 'k2': idx, 'k3': idx, 'k4': idx, 'k5': idx, 'k6': idx}, }, True, True)
+        for idx in xrange(1, TEST_COUNT):
+            self.db.user.update({'idx': idx}, {'$set': {'k1': idx, 'k2': idx, 'k3': idx, 'k4': idx,
+                                                        'k5': idx, 'k6': idx, 'k7': idx, 'k8': idx,
+                                                        'k15': idx, 'k16': idx, 'k17': idx, 'k18': idx,
+                                                        'k25': idx, 'k26': idx, 'k27': idx, 'k28': idx,
+                                                        'k35': 'foofoo', 'k36': 'foofoo', 'k37': 'foofoo', 'k38': 'foofoo',
+                                                        'k45': 'foofoo', 'k46': 'foofoo', 'k47': 'foofoo', 'k48': 'foofoo',
+                                                        } }, True, True)
 
     def test_random_read(self):
         pass
@@ -79,6 +86,13 @@ if __name__ == "__main__":
     tornado.options.parse_command_line()
     r = Record()
     r.run()
+    start_time = time.time()
+
+    # r.single_update()
+    r.multi_update()
+
+    consume = time.time() - start_time
+    print 'use time: ' + str(consume)
     r.db.user.remove()
 
     # if options.opt == 'del':

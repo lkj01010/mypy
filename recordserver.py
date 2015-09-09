@@ -29,10 +29,7 @@ class Application(tornado.web.Application):
             (r"/writeRecord", WriteRecordHandler),
             (r"/readRecord", ReadRecordHandler)
         ]
-        self.check_mod = check_login.CheckLogin()
         self.record_mod = record.Record(options.db_addr, options.db_port)
-
-        self.pending_records = dict()
 
         tornado.web.Application.__init__(self, handlers, debug=False)
 
@@ -48,43 +45,55 @@ class ReadRecordHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        reply_dict = dict()
-        reply_dict['code'] = 0
-        # reply_dict['type'] = 'read'
-        reply_dict['record'] = dict()
 
         try:
             user_id = self.get_argument('user_id')
             user_key = self.get_argument('user_key')
-            cb_name = self.get_argument('callback')
         except KeyError:
-            server_log.warning("Failed to get argument", exc_info=True)
+            server_log.warning("except KeyError: Failed to get argument", exc_info=True)
 
-        self.application.check_mod.read_callback = self.check_info_callback
-        self.application.check_mod.read_callback_invoker = self
+        checker = check_login.LoginChecker()
+        checker.check_info(user_id, user_key, self._check_ret_callback)
 
-        if self.application.check_mod.check_info(user_id, user_key, is_read=True):
+        # if self.application.check_mod.check_info(user_id, user_key, is_read=True):
+        #     reply_dict['code'] = 1
+        #     reply_dict['record'] = self.application.record_mod.get_record(user_id)
+        #
+        #     reply = str(cb_name) + '(' + json.dumps(reply_dict) + ')'
+        #     self.write(reply)      # this function will add '//' to words, overwrite reply !!!
+        #     server_log.info('read: ' + reply)
+
+        # else:
+        #     '''wrong user_id or user_key'''
+        #     return
+
+    def _check_ret_callback(self, is_valid):
+        reply_dict = dict()
+        reply_dict['code'] = 0
+        reply_dict['record'] = dict()
+
+        if is_valid:
             reply_dict['code'] = 1
-            reply_dict['record'] = self.application.record_mod.get_record(user_id)
+            reply_dict['record'] = self.application.record_mod.get_record(self.get_argument('user_id'))
 
-            reply = str(cb_name) + '(' + json.dumps(reply_dict) + ')'
+            reply = str(self.get_argument('callback')) + '(' + json.dumps(reply_dict) + ')'
             self.write(reply)      # this function will add '//' to words, overwrite reply !!!
             server_log.info('read: ' + reply)
-
         else:
             '''wrong user_id or user_key'''
-            return
-
-    def check_info_callback(self, user_id, is_valid):
-        if is_valid:
-            self.application.record_mod.commit_record(user_id, self.pending_records[user_id])
-            del self.pending_records[user_id]
-            replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
-        else:
-            '''wrong user_id or user_key'''
-            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
-        self.write(replay)
+            pass
         self.finish()
+
+    # def check_info_callback(self, user_id, is_valid):
+    #     if is_valid:
+    #         self.application.record_mod.commit_record(user_id, self.pending_records[user_id])
+    #         del self.pending_records[user_id]
+    #         replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
+    #     else:
+    #         '''wrong user_id or user_key'''
+    #         replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
+    #     self.write(replay)
+    #     self.finish()
 
 
 class WriteRecordHandler(tornado.web.RequestHandler):
@@ -99,29 +108,43 @@ class WriteRecordHandler(tornado.web.RequestHandler):
         except KeyError:
             server_log.warning("Failed to get argument", exc_info=True)
 
-        self.application.check_mod.write_callback = self.check_info_callback
-        self.application.check_mod.write_callback_invoker = self
+        checker = check_login.LoginChecker()
+        checker.check_info(user_id, user_key, self._check_ret_callback)
 
-        if self.application.check_mod.check_info(user_id, user_key, is_read=False):
-            self.application.record_mod.commit_record(user_id, self.get_argument('record'))
-            replay = str(self.get_argument('callback') + '(' + "{'code': 1}" + ')')
-            self.write(replay)
-        else:
-            '''not in record cache, should be new active account, need check valid via tencent server
-            wait callback tobe called'''
-            self.application.pending_records[user_id] = self.get_argument('record')
-            return
+        # self.application.check_mod.write_callback = self.check_info_callback
+        # self.application.check_mod.write_callback_invoker = self
+        #
+        # if self.application.check_mod.check_info(user_id, user_key, is_read=False):
+        #     self.application.record_mod.commit_record(user_id, self.get_argument('record'))
+        #     replay = str(self.get_argument('callback') + '(' + "{'code': 1}" + ')')
+        #     self.write(replay)
+        # else:
+        #     '''not in record cache, should be new active account, need check valid via tencent server
+        #     wait callback tobe called'''
+        #     self.application.pending_records[user_id] = self.get_argument('record')
+        #     return
 
-    def check_info_callback(self, user_id, is_valid):
+    def _check_ret_callback(self, is_valid):
         if is_valid:
-            self.application.record_mod.commit_record(user_id, self.application.pending_records[user_id])
-            del self.application.pending_records[user_id]
+            self.application.record_mod.commit_record(self.get_argument('user_id'),
+                                                      self.get_argument('record'))
             replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
         else:
             '''wrong user_id or user_key'''
             replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
         self.write(replay)
         self.finish()
+
+    # def check_info_callback(self, user_id, is_valid):
+    #     if is_valid:
+    #         self.application.record_mod.commit_record(user_id, self.application.pending_records[user_id])
+    #         del self.application.pending_records[user_id]
+    #         replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
+    #     else:
+    #         '''wrong user_id or user_key'''
+    #         replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
+    #     self.write(replay)
+    #     self.finish()
 
     def _test_get(self):
         coll = self.application.db.user
