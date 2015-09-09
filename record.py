@@ -4,11 +4,11 @@ import tornado.ioloop
 
 import pymongo
 import json
-
+from log import server_log
 
 class Record(object):
-    def __init__(self):
-        conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
+    def __init__(self, db_addr, db_port):
+        conn = pymongo.MongoClient(db_addr, db_port)
         self.db = conn['dota']
         # for index in self.db.user.list_indexes():
         #     print(index)
@@ -89,5 +89,6 @@ class Record(object):
 
     @staticmethod
     def push_records_to_db_callback(response):
-        print 'syn callback', response.body
+        # print 'syn callback', response.body
+        server_log.info('syn callback' + str(response.body))
         pass

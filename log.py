@@ -14,6 +14,6 @@ fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 
 # server_log.addHandler(fh)
-server_log.addHandler(ch)
+# server_log.addHandler(ch)
 
 # why print 2 log in console, and why this format has no effect on 'ch' ???

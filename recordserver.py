@@ -15,7 +15,9 @@ import record
 
 from tornado.options import define, options
 
-define("port", default=8010, help="run on the given port", type=int)
+define("port", default=12304, help="run on the given port", type=int)
+define("db_addr", default="127.0.0.1", help="db addr", type=str)
+define("db_port", default=27017, help="db port", type=int)
 
 _SYN_DB_INTERVAL = 5000
 
@@ -28,7 +30,9 @@ class Application(tornado.web.Application):
             (r"/readRecord", ReadRecordHandler)
         ]
         self.check_mod = check_login.CheckLogin()
-        self.record_mod = record.Record()
+        self.record_mod = record.Record(options.db_addr, options.db_port)
+
+        self.pending_records = dict()
 
         tornado.web.Application.__init__(self, handlers, debug=False)
 
@@ -42,6 +46,7 @@ class ReadRecordHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
+    @tornado.web.asynchronous
     def get(self):
         reply_dict = dict()
         reply_dict['code'] = 0
@@ -55,7 +60,10 @@ class ReadRecordHandler(tornado.web.RequestHandler):
         except KeyError:
             server_log.warning("Failed to get argument", exc_info=True)
 
-        if self.application.check_mod.check_info(user_id, user_key):
+        self.application.check_mod.read_callback = self.check_info_callback
+        self.application.check_mod.read_callback_invoker = self
+
+        if self.application.check_mod.check_info(user_id, user_key, is_read=True):
             reply_dict['code'] = 1
             reply_dict['record'] = self.application.record_mod.get_record(user_id)
 
@@ -67,11 +75,23 @@ class ReadRecordHandler(tornado.web.RequestHandler):
             '''wrong user_id or user_key'''
             return
 
+    def check_info_callback(self, user_id, is_valid):
+        if is_valid:
+            self.application.record_mod.commit_record(user_id, self.pending_records[user_id])
+            del self.pending_records[user_id]
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
+        else:
+            '''wrong user_id or user_key'''
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
+        self.write(replay)
+        self.finish()
+
 
 class WriteRecordHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
+    @tornado.web.asynchronous
     def get(self, *args, **kwargs):
         try:
             user_id = self.get_argument('user_id')
@@ -79,37 +99,29 @@ class WriteRecordHandler(tornado.web.RequestHandler):
         except KeyError:
             server_log.warning("Failed to get argument", exc_info=True)
 
-        if self.application.check_mod.check_info(user_id, user_key):
+        self.application.check_mod.write_callback = self.check_info_callback
+        self.application.check_mod.write_callback_invoker = self
+
+        if self.application.check_mod.check_info(user_id, user_key, is_read=False):
             self.application.record_mod.commit_record(user_id, self.get_argument('record'))
             replay = str(self.get_argument('callback') + '(' + "{'code': 1}" + ')')
             self.write(replay)
         else:
-            '''wrong user_id or user_key'''
+            '''not in record cache, should be new active account, need check valid via tencent server
+            wait callback tobe called'''
+            self.application.pending_records[user_id] = self.get_argument('record')
             return
-        ###
-        #
-        # save_dict = dict()
-        # save_dict['record'] = dict()
-        #
-        # try:
-        #     user_id = self.get_argument('user_id')
-        #     user_key = self.get_argument('user_key')
-        #     # cb_name = self.get_argument('callback')
-        #     record_str = self.get_argument('record')
-        # except KeyError:
-        #     server_log.warning("Failed to get argument", exc_info=True)
-        #
-        # if self.application.check_mod.check_info(user_id, user_key):
-        #     save_dict['user_id'] = user_id
-        #     save_dict['record'] = json.JSONDecoder().decode(record_str)
-        #
-        #     # replay = str(cb_name) + '(' + "{'code': 1}" + ')'
-        #     # self.write(replay)
-        #     self.application.record_mod.commit_record(save_dict)
-        #     # server_log.info('save: ' + replay)
-        # else:
-        #     '''wrong user_id or user_key'''
-        #     return
+
+    def check_info_callback(self, user_id, is_valid):
+        if is_valid:
+            self.application.record_mod.commit_record(user_id, self.application.pending_records[user_id])
+            del self.application.pending_records[user_id]
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
+        else:
+            '''wrong user_id or user_key'''
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
+        self.write(replay)
+        self.finish()
 
     def _test_get(self):
         coll = self.application.db.user
@@ -141,12 +153,16 @@ class WriteRecordHandler(tornado.web.RequestHandler):
 
 
 if __name__ == "__main__":
+    tornado.options.parse_command_line()
     app = Application()
     app.termly_push_records_to_db()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(cfg.RECORD_SERVER_PORT)
+    http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
 
 
     # find_one 10000 times in 5w with index uses 2522ms
     # insert_one 10000 times in 5w(to 6w) with index uses 2662ms
+
+    # test this !!!
+    # http://127.0.0.1:12304/writeRecord?user_id=userid_ooxxooxx&user_key=key0123&record={}&callback=jQuery17204590415961574763_1441798647346&_=1441798742602

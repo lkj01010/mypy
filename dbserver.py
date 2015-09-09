@@ -13,7 +13,9 @@ from log import server_log
 
 
 from tornado.options import define, options
-define("port", default=8020, help="run on the given port", type=int)
+define("port", default=12310, help="run on the given port", type=int)
+define("db_addr", default="127.0.0.1", help="db addr", type=str)
+define("db_port", default=27017, help="db port", type=int)
 
 
 class Application(tornado.web.Application):
@@ -22,7 +24,7 @@ class Application(tornado.web.Application):
             (r"/", WriteDocToDBHandler)
             ]
 
-        conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
+        conn = pymongo.MongoClient(options.db_addr, options.db_port)
         self.db = conn['dota']
         self.db.user.create_index('user_id')
 
@@ -34,7 +36,8 @@ class WriteDocToDBHandler(tornado.web.RequestHandler):
 
     def post(self, *args, **kwargs):
         batch_str = self.request.body
-        print 'will write this: ', str(batch_str)
+        # print 'will write this: ', str(batch_str)
+        server_log.info('will write this:' + str(batch_str))
         batch_dict = json.JSONDecoder().decode(batch_str)
         doc_dict = dict()
         for user_id, record_str in batch_dict.items():
@@ -48,5 +51,5 @@ if __name__ == "__main__":
     tornado.options.parse_command_line()
     app = Application()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(cfg.DB_SERVER_PORT)
+    http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
