@@ -37,14 +37,17 @@ class WriteDocToDBHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         batch_str = self.request.body
         # print 'will write this: ', str(batch_str)
-        server_log.info('will write this:' + str(batch_str))
         batch_dict = json.JSONDecoder().decode(batch_str)
         doc_dict = dict()
         for user_id, record_str in batch_dict.items():
+
             record_dict = json.JSONDecoder().decode(record_str)
             doc_dict['user_id'] = user_id
             doc_dict['record'] = record_dict
-            self.application.db.user.update({'user_id': user_id}, doc_dict, True)
+
+            self.application.db.user.update({'user_id': user_id}, doc_dict, True, True)
+            server_log.info('db write this: user_id:' + user_id + ' doc: ' + str(doc_dict))
+
         self.write("{'ok': 1}")
 
 if __name__ == "__main__":

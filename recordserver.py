@@ -19,7 +19,7 @@ define("port", default=12304, help="run on the given port", type=int)
 define("db_addr", default="127.0.0.1", help="db addr", type=str)
 define("db_port", default=27017, help="db port", type=int)
 
-_SYN_DB_INTERVAL = 5000
+_SYN_DB_INTERVAL = 15000
 
 
 class Application(tornado.web.Application):

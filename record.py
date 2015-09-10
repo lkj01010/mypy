@@ -88,7 +88,6 @@ class Record(object):
         else:
             self.batch_on_pushing[user_id] = record_str
 
-
     def push_records_to_db(self):
         j_record_batch = json.JSONEncoder().encode(self.batch)
         request = tornado.httpclient.HTTPRequest('http://' + cfg.DB_SERVER_ADDR + ':' + str(cfg.DB_SERVER_PORT),
