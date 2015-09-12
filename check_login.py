@@ -2,9 +2,8 @@ import tornado.httpclient
 import tornado.ioloop
 from log import server_log
 import json
+import cfg
 
-# TENCENT_ACCOUNT_SERVER = 'http://127.0.0.1:12303/'
-TENCENT_ACCOUNT_SERVER = 'http://203.195.243.33:12303/'
 
 class LoginChecker(object):
 
@@ -34,10 +33,10 @@ class LoginChecker(object):
         if is_need_check:
             server_log.info('need check_info, user_id = ' + user_id, 'user_key = ' + user_key)
             '''should check from tencent server'''
-            request = tornado.httpclient.HTTPRequest(TENCENT_ACCOUNT_SERVER +
-                                                     'openid=' + user_id +
+            request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER +
+                                                     '?openid=' + user_id +
                                                      '&openkey=' + user_key +
-                                                    '&api=k_userinfo' +
+                                                    '&api=k_playzone_userinfo' +
                                                      '&platform=wanba_ts' +
                                                     '&callback=cb',
                                                     method='GET')

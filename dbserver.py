@@ -21,12 +21,15 @@ define("db_port", default=27017, help="db port", type=int)
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/", WriteDocToDBHandler)
+            (r"/", WriteDocToDBHandler),
+            (r"/billinfo", WriteBillToDBHandler)
             ]
 
         conn = pymongo.MongoClient(options.db_addr, options.db_port)
         self.db = conn['dota']
-        self.db.user.create_index('user_id')
+        self.db.user.create_index('user_uid')
+
+        self.db.bill_test.create_index('billno')
 
         tornado.web.Application.__init__(self, handlers, debug=True)
 
@@ -42,13 +45,26 @@ class WriteDocToDBHandler(tornado.web.RequestHandler):
         for user_id, record_str in batch_dict.items():
 
             record_dict = json.JSONDecoder().decode(record_str)
-            doc_dict['user_id'] = user_id
+            doc_dict['user_uid'] = user_id
             doc_dict['record'] = record_dict
 
-            self.application.db.user.update({'user_id': user_id}, doc_dict, True, True)
-            server_log.info('db write this: user_id:' + user_id + ' doc: ' + str(doc_dict))
+            self.application.db.user.update({'user_uid': user_id}, doc_dict, True, True)
+            server_log.info('db write this: user_uid:' + user_id + ' doc: ' + str(doc_dict))
 
-        self.write("{'ok': 1}")
+        self.write("{'ok': 1, 'msg': 'push record'}")
+
+class WriteBillToDBHandler(tornado.web.RequestHandler):
+    def data_received(self, chunk):
+        pass
+
+    def post(self, *args, **kwargs):
+        bill_str = self.request.body
+        bill_dict = json.JSONDecoder().decode(bill_str)
+
+        self.application.db.bill.insert_one(bill_dict)
+        server_log.info('db write bill: ' + str(bill_dict))
+
+        self.write("{'ok': 1, 'msg': 'push bill'}")
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()

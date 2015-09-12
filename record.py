@@ -14,7 +14,7 @@ class Record(object):
         # for index in self.db.user.list_indexes():
         #     print(index)
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
-        self.db.user.create_index('user_id')
+        self.db.user.create_index('user_uid')
         self.db_client = tornado.httpclient.AsyncHTTPClient()
         self.is_pushing = False
         self.batch = dict()
@@ -57,14 +57,14 @@ class Record(object):
         return record
 
     ''' return a record (dict type) '''
-    def get_record(self, user_id):
+    def get_record(self, user_uid):
         # find it from record batch first
-        if not self.is_pushing and user_id in self.batch:
-            return json.JSONDecoder().decode(self.batch[user_id])   # json to dict
-        elif self.is_pushing and user_id in self.batch_on_pushing:
-            return json.JSONDecoder().decode(self.batch_on_pushing[user_id])
+        if not self.is_pushing and user_uid in self.batch:
+            return json.JSONDecoder().decode(self.batch[user_uid])   # json to dict
+        elif self.is_pushing and user_uid in self.batch_on_pushing:
+            return json.JSONDecoder().decode(self.batch_on_pushing[user_uid])
         else:
-            find_ret = self.db.user.find_one({'user_id': user_id})
+            find_ret = self.db.user.find_one({'user_uid': user_uid})
             if find_ret:
                 del find_ret['_id']
                 reply_dict = dict()
@@ -73,20 +73,20 @@ class Record(object):
                 return reply_dict
             else:
                 record_doc = dict()
-                record_doc['user_id'] = user_id
+                record_doc['user_uid'] = user_uid
                 record_doc['record'] = Record.default_record()
                 self.db.user.insert(record_doc)
 
                 reply_dict = Record.default_record()
                 return reply_dict
 
-    def commit_record(self, user_id, record_str):
+    def commit_record(self, user_uid, record_str):
         # j_info = json.JSONEncoder().encode(record_str)
         # self.db.user.update({'user_id': info['user_id']}, record_str, True)
         if not self.is_pushing:
-            self.batch[user_id] = record_str
+            self.batch[user_uid] = record_str
         else:
-            self.batch_on_pushing[user_id] = record_str
+            self.batch_on_pushing[user_uid] = record_str
 
     def push_records_to_db(self):
         j_record_batch = json.JSONEncoder().encode(self.batch)
@@ -95,7 +95,6 @@ class Record(object):
         self.db_client.fetch(request, callback=self.push_records_to_db_callback)
         self.is_pushing = True
 
-    # @staticmethod
     def push_records_to_db_callback(self, response):
         # print 'syn callback', response.body
         server_log.info('syn callback' + str(response.body))
