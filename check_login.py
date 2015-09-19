@@ -15,7 +15,7 @@ class LoginChecker(object):
         self.chk_client = tornado.httpclient.AsyncHTTPClient()
         self.check_ret_callback = None
 
-    def check_info(self, user_id, user_key, callback):
+    def check_info(self, user_id, user_key, zoneid, callback):
         self.check_ret_callback = callback
 
         is_need_check = False
@@ -36,8 +36,9 @@ class LoginChecker(object):
             request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER +
                                                      '?openid=' + user_id +
                                                      '&openkey=' + user_key +
+                                                    '&user_pf=' + zoneid +
                                                     '&api=k_playzone_userinfo' +
-                                                     '&platform=wanba_ts' +
+                                                     '&platform=qzone' +
                                                     '&callback=cb',
                                                     method='GET')
             server_log.info('new active url: ' + request.url)
@@ -66,31 +67,10 @@ class LoginChecker(object):
                         del LoginChecker.user_cache[expired]
             return
 
-        self.check_ret_callback(False)
-
-    # def _write_callback(self, response):
-    #     self._inner_callback(response, self.write_callback, self.write_callback_invoker)
-    #
-    # def _read_callback(self, response):
-    #     self._inner_callback(response, self.read_callback, self.read_callback_invoker)
-    #
-    # def _inner_callback(self, response, cb, cb_invoker):
-    #     server_log.info('check_callback' + str(response.body))
-    #     j_body = json.JSONDecoder().decode(response.body.lstrip('cb(').rstrip(')'))
-    #     if j_body['is_ok'] == 0 and 'openid' in j_body and 'openkey' in j_body:
-    #         openid = j_body['openid']
-    #         self.user_cache[openid] = j_body['openkey']
-    #         self.user_expire_holder.append(openid)
-    #         cb(openid, True)
-    #         '''hold a max number of active accounts'''
-    #         if len(self.user_expire_holder) > 10000:
-    #             expired = self.user_expire_holder.pop(0)
-    #             if expired:
-    #                 del self.user_cache[expired]
-    #     else:
-    #         cb(None, False)
+        # self.check_ret_callback(False)
+        self.check_ret_callback(True)
 
 if __name__ == "__main__":
     app = LoginChecker()
-    app.check_info('B1D43980E13A9C90F74F2C7405AE54A8', 'KFEJIFEIEKKFEJF012912')
+    app.check_info('B1D43980E13A9C90F74F2C7405AE54A8', 'KFEJIFEIEKKFEJF012912', 1)
     tornado.ioloop.IOLoop.instance().start()

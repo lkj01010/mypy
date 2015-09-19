@@ -25,8 +25,7 @@ _SYN_DB_INTERVAL = 15000
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/", WriteRecordHandler),
-            (r"/writeRecord", WriteRecordHandler),
+            (r"/writeDirtyRecord", WriteDirtyRecordHandler),
             (r"/readRecord", ReadRecordHandler)
         ]
         self.record_mod = record.Record(options.db_addr, options.db_port)
@@ -77,7 +76,7 @@ class ReadRecordHandler(tornado.web.RequestHandler):
 
         self.finish()
 
-class WriteRecordHandler(tornado.web.RequestHandler):
+class WriteDirtyRecordHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
@@ -97,12 +96,16 @@ class WriteRecordHandler(tornado.web.RequestHandler):
         if is_valid:
             user_pf = self.get_argument('user_pf')
             user_uid = self.get_argument('user_id') + '_' + user_pf
-            self.application.record_mod.commit_record(user_uid,
-                                                      self.get_argument('record'))
-            replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
+            dirty_id = self.get_argument('dirty_id')
+            # commit dirty record
+            self.application.record_mod.commit_dirty_record(user_uid, self.get_argument('dirty_record'))
+            replay = str(self.get_argument('callback') + '({' +
+                         "'dirty_id':" + str(dirty_id) + ',' +
+                         + "'msg': 'push ok'" +
+                          '})')
         else:
             '''wrong user_id or user_key'''
-            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid account'}" + ')')
         self.write(replay)
         self.finish()
 

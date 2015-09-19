@@ -60,16 +60,21 @@ class Record(object):
     def get_record(self, user_uid):
         # find it from record batch first
         if not self.is_pushing and user_uid in self.batch:
-            return json.JSONDecoder().decode(self.batch[user_uid])   # json to dict
+            # return json.JSONDecoder().decode(self.batch[user_uid])   # json to dict
+            return self.batch[user_uid]   # json to dict
+
         elif self.is_pushing and user_uid in self.batch_on_pushing:
-            return json.JSONDecoder().decode(self.batch_on_pushing[user_uid])
+            # return json.JSONDecoder().decode(self.batch_on_pushing[user_uid])
+            return self.batch_on_pushing[user_uid]
+
         else:
             find_ret = self.db.user.find_one({'user_uid': user_uid})
             if find_ret:
                 del find_ret['_id']
                 reply_dict = dict()
                 if 'record' in find_ret and type(find_ret['record']) is dict:
-                    reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
+                    # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
+                    reply_dict = find_ret['record']
                 return reply_dict
             else:
                 record_doc = dict()
@@ -87,6 +92,14 @@ class Record(object):
             self.batch[user_uid] = record_str
         else:
             self.batch_on_pushing[user_uid] = record_str
+
+    def commit_dirty_record(self, user_uid, dirty_record_str):
+        dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
+        if not self.is_pushing:
+            self.batch[user_uid].update(dirty_record_dict)
+        else:
+            self.batch_on_pushing[user_uid].update(dirty_record_dict)
+        pass
 
     def push_records_to_db(self):
         j_record_batch = json.JSONEncoder().encode(self.batch)

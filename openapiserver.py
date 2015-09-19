@@ -22,7 +22,6 @@ class Application(tornado.web.Application):
     APP_ID = 1104680669
     APP_KEY = 'M6TOzozadY9AK8ug'
     SERVER_LIST = ('openapi.tencentyun.com',)
-    ZONE_ID = '1'
 
     def __init__(self):
         handlers = [
@@ -35,7 +34,7 @@ class Application(tornado.web.Application):
         self.notify_client = tornado.httpclient.AsyncHTTPClient()
         tornado.web.Application.__init__(self, handlers, debug=True)
 
-    def push_billinfo_to_db(self, openid, user_pf, bill_dict):
+    def push_billinfo_to_db(self, openid, user_pf, itemid, bill_dict):
         """
         the return bill dict is like this:
         {'code':0, 'default':0, 'subcode':0, 'message':'',
@@ -45,6 +44,7 @@ class Application(tornado.web.Application):
         if bill_dict['code'] == 0:  # pay success
             bill_dict['data'][0]['user_id'] = openid
             bill_dict['data'][0]['user_pf'] = user_pf
+            bill_dict['data'][0]['itemid'] = itemid
             data_str = json.JSONEncoder().encode(bill_dict['data'][0])
             # bill_str = json.dumps(bill_dict, indent=4, ensure_ascii=False).encode('utf8')
             request = tornado.httpclient.HTTPRequest(
@@ -65,13 +65,14 @@ class ApiHandler(tornado.web.RequestHandler):
             openid = self.get_argument('openid')
             openkey = self.get_argument('openkey')
             platform = self.get_argument('platform')
+            user_pf = self.get_argument('user_pf')
             api = self.get_argument('api')
             callback = self.get_argument('callback')
         except KeyError:
             server_log.warning("except KeyError: Failed to get argument", exc_info=True)
 
         server_log.info('handle api:' + api)
-        replay = ''
+
         if api == 'k_userinfo':
             jdata = self.application.api.call('/v3/user/get_info', {
                 'openid': openid,
@@ -81,41 +82,41 @@ class ApiHandler(tornado.web.RequestHandler):
             jdata['is_ok'] = 1
             jdata['openid'] = openid
             jdata['openkey'] = openkey
-            # replay = json.JSONEncoder().encode(jdata)
-            replay = json.dumps(jdata, ensure_ascii=False).encode('utf8')
+            # reply = json.JSONEncoder().encode(jdata)
+            reply = json.dumps(jdata, ensure_ascii=False).encode('utf8')
         elif api == 'k_playzone_userinfo':
             jdata = self.application.api.call('/v3/user/get_playzone_userinfo', {
                 'openid': openid,
                 'openkey': openkey,
                 'pf': platform,
-                'zoneid': Application.ZONE_ID
+                'zoneid': int(user_pf)
             })
             jdata['is_ok'] = 1
             jdata['openid'] = openid
             jdata['openkey'] = openkey
-            replay = json.dumps(jdata, ensure_ascii=False).encode('utf8')
+            reply = json.dumps(jdata, ensure_ascii=False).encode('utf8')
         elif api == 'k_buy_playzone_item':
             itemid = self.get_argument('itemid')
             count = self.get_argument('count')
-            user_pf = self.get_argument('user_pf')
+
             jdata = self.application.api.call('/v3/user/buy_playzone_item', {
                 'openid': openid,
                 'openkey': openkey,
                 'pf': platform,
-                'zoneid': Application.ZONE_ID,
+                'zoneid': int(user_pf),
                 'itemid': itemid,
-                'count': count
+                'count': int(count)
             })
             jdata['is_ok'] = 1
-            replay = json.dumps(jdata, ensure_ascii=False).encode('utf8')
-            self.application.push_billinfo_to_db(openid, user_pf, jdata)
+            reply = json.dumps(jdata, ensure_ascii=False).encode('utf8')
+            self.application.push_billinfo_to_db(openid, user_pf, itemid, jdata)
         else:
-            replay = "{'is_ok':0, 'msg': 'invalid api'}"
+            reply = "{'is_ok':0, 'msg': 'invalid api'}"
 
-        print replay
+        print('reply: ' + reply)
         # lkj bug: how to show unicode - chinese
-        replay = callback.encode('utf8') + '(' + replay + ')'
-        self.write(replay)
+        reply = callback.encode('utf8') + '(' + reply + ')'
+        self.write(reply)
 
 if __name__ == "__main__":
     app = Application()

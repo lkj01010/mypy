@@ -65,11 +65,18 @@ class OpenAPIV3(object):
             msg = 'exception occur.msg[%s], traceback[%s]' % (str(e), __import__('traceback').format_exc())
             return {'ret':OPEN_HTTP_TRANSLATE_ERROR, 'msg':msg}
         else:
-            return json.loads(data)
-
+            # lkj add decode gbk   ,as data received is this format
+            try:
+                return json.loads(data)
+            except UnicodeDecodeError:
+                return json.loads(data.decode('gbk'))
+            # ]]
         finally:
             if self._is_stat is True:
-                stat_jret = json.loads(data)
+                try:
+                    stat_jret = json.loads(data)
+                except UnicodeDecodeError:
+                    stat_jret = json.loads(data.decode('gbk'))
 
                 stat_params={}
                 stat_params['appid'] = cp_params['appid']
