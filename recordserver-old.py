@@ -25,7 +25,8 @@ _SYN_DB_INTERVAL = 15000
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/writeDirtyRecord", WriteDirtyRecordHandler),
+            (r"/", WriteRecordHandler),
+            (r"/writeRecord", WriteRecordHandler),
             (r"/readRecord", ReadRecordHandler)
         ]
         self.record_mod = record.Record(options.db_addr, options.db_port)
@@ -76,7 +77,7 @@ class ReadRecordHandler(tornado.web.RequestHandler):
 
         self.finish()
 
-class WriteDirtyRecordHandler(tornado.web.RequestHandler):
+class WriteRecordHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
@@ -96,16 +97,15 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
         if is_valid:
             user_pf = self.get_argument('user_pf')
             user_uid = self.get_argument('user_id') + '_' + user_pf
-            dirty_id = self.get_argument('dirty_id')
-            # commit dirty record
-            self.application.record_mod.commit_dirty_record(user_uid, self.get_argument('dirty_record'))
-            replay = str(self.get_argument('callback') + '({' +
-                         "'dirty_id':" + str(dirty_id) + ',' +
-                         + "'msg': 'push ok'" +
-                          '})')
+            self.application.record_mod.commit_record(user_uid,
+                                                      self.get_argument('record'))
+            is_immediately = self.get_argument('immediately')
+            if is_immediately == '1':
+               self.application.record_mod.push_records_to_db()
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'valid'}" + ')')
         else:
             '''wrong user_id or user_key'''
-            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid account'}" + ')')
+            replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid!!!'}" + ')')
         self.write(replay)
         self.finish()
 

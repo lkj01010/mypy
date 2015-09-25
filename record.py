@@ -10,6 +10,7 @@ import copy
 class Record(object):
     def __init__(self, db_addr, db_port):
         conn = pymongo.MongoClient(db_addr, db_port)
+
         self.db = conn['dota']
         # for index in self.db.user.list_indexes():
         #     print(index)
@@ -19,6 +20,7 @@ class Record(object):
         self.is_pushing = False
         self.batch = dict()
         self.batch_on_pushing = dict()  # cache batch using until pushing data to db complete
+        # self.cache = dict()
         pass
 
     @staticmethod
@@ -57,14 +59,18 @@ class Record(object):
         return record
 
     ''' return a record (dict type) '''
-    def get_record(self, user_uid):
+    def get_record_old(self, user_uid):
         # find it from record batch first
+        server_log.info('get record. user_uid=' + user_uid)
+
         if not self.is_pushing and user_uid in self.batch:
             # return json.JSONDecoder().decode(self.batch[user_uid])   # json to dict
+            server_log.info('batch : ' + str(self.batch))
             return self.batch[user_uid]   # json to dict
 
         elif self.is_pushing and user_uid in self.batch_on_pushing:
             # return json.JSONDecoder().decode(self.batch_on_pushing[user_uid])
+            server_log.info('batch_on_pushing : ' + str(self.batch_on_pushing))
             return self.batch_on_pushing[user_uid]
 
         else:
@@ -77,6 +83,7 @@ class Record(object):
                     reply_dict = find_ret['record']
                 return reply_dict
             else:
+                server_log.info('not find record of user_uid=' + user_uid + ', make default record !!!')
                 record_doc = dict()
                 record_doc['user_uid'] = user_uid
                 record_doc['record'] = Record.default_record()
@@ -85,35 +92,106 @@ class Record(object):
                 reply_dict = Record.default_record()
                 return reply_dict
 
-    def commit_record(self, user_uid, record_str):
-        # j_info = json.JSONEncoder().encode(record_str)
-        # self.db.user.update({'user_id': info['user_id']}, record_str, True)
-        if not self.is_pushing:
-            self.batch[user_uid] = record_str
-        else:
-            self.batch_on_pushing[user_uid] = record_str
+    '''-------------------------------------'''
+    def get_record(self, user_uid):
+        # server_log.info('get record. user_uid=' + user_uid)
+        # if user_uid not in self.cache:
+        #     server_log.info('not in cache')
+            find_ret = self.db.user.find_one({'user_uid': user_uid})
+            if find_ret:
+                server_log.info('db find, record=' + str(find_ret))
+                del find_ret['_id']
+                reply_dict = dict()
+                if 'record' in find_ret and type(find_ret['record']) is dict:
+                    # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
+                    reply_dict = find_ret['record']
+            else:
+                server_log.info('not find record of user_uid=' + user_uid + ', make default record !!!')
+                record_doc = dict()
+                record_doc['user_uid'] = user_uid
+                record_doc['record'] = Record.default_record()
+                self.db.user.insert(record_doc)
+                reply_dict = Record.default_record()
+
+        #     self.cache[user_uid] = reply_dict
+            return reply_dict
+        # else:
+        #     server_log.info('in cache, record=' + str(self.cache[user_uid]))
+        #     return self.cache[user_uid]
 
     def commit_dirty_record(self, user_uid, dirty_record_str):
         dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
-        if not self.is_pushing:
-            self.batch[user_uid].update(dirty_record_dict)
-        else:
-            self.batch_on_pushing[user_uid].update(dirty_record_dict)
-        pass
+        # if not self.cache.has_key(user_uid):
+        #     self.cache[user_uid] = dict()
+        # self.cache[user_uid].update(dirty_record_dict)
+
+        if not self.batch.has_key(user_uid):
+            self.batch[user_uid] = dict()
+        self.batch[user_uid].update(dirty_record_dict)
 
     def push_records_to_db(self):
         j_record_batch = json.JSONEncoder().encode(self.batch)
-        request = tornado.httpclient.HTTPRequest('http://' + cfg.DB_SERVER_ADDR + ':' + str(cfg.DB_SERVER_PORT),
-                                                 method='POST', body=j_record_batch)
+        request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
         self.db_client.fetch(request, callback=self.push_records_to_db_callback)
-        self.is_pushing = True
+        self.batch.clear()
 
     def push_records_to_db_callback(self, response):
-        # print 'syn callback', response.body
-        server_log.info('syn callback' + str(response.body))
-        # manage batch for new turn
-        self.batch.clear()
-        self.batch = copy.deepcopy(self.batch_on_pushing)
-        self.batch_on_pushing.clear()
-        self.is_pushing = False
-        pass
+        server_log.info('syn response: ' + str(response.body))
+
+    '''-------------------------------------'''
+    # def commit_record(self, user_uid, record_str):
+    #     # j_info = json.JSONEncoder().encode(record_str)
+    #     # self.db.user.update({'user_id': info['user_id']}, record_str, True)
+    #     if not self.is_pushing:
+    #         self.batch[user_uid] = record_str
+    #     else:
+    #         self.batch_on_pushing[user_uid] = record_str
+
+    # def commit_dirty_record_old(self, user_uid, dirty_record_str):
+    #     dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
+    #     if not self.is_pushing:
+    #         if not self.batch.has_key(user_uid):
+    #             self.batch[user_uid] = dict()
+    #         self.batch[user_uid].update(dirty_record_dict)
+    #     else:
+    #         if not self.batch_on_pushing.has_key(user_uid):
+    #             self.batch_on_pushing[user_uid] = dict()
+    #         self.batch_on_pushing[user_uid].update(dirty_record_dict)
+    #
+    # def push_records_to_db_old(self):
+    #     j_record_batch = json.JSONEncoder().encode(self.batch)
+    #     request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
+    #     self.db_client.fetch(request, callback=self.push_records_to_db_callback_old)
+    #     self.is_pushing = True
+    #
+    # def push_records_to_db_callback_old(self, response):
+    #     if response.body:
+    #         # print 'syn callback', response.body
+    #         # manage batch for new turn
+    #         self.batch = {}
+    #         self.batch = copy.deepcopy(self.batch_on_pushing)
+    #         # self.batch_on_pushing.clear()   # lkj note: clear not clear the key !!!
+    #         self.batch_on_pushing = {}
+    #         self.is_pushing = False
+    #     else:
+    #         pass
+    #     server_log.info('syn response: ' + str(response.body))
+
+    '''------------------------------------'''
+    def push_record_to_db(self, user_uid, record_str):
+        """push single record to db"""
+        record = dict()
+        record[user_uid] = record_str
+        j_record_batch = json.JSONEncoder().encode(record)
+        request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
+        self.db_client.fetch(request, callback=self.push_record_to_db_callback)
+
+    def push_record_to_db_callback(self, response):
+        if response.body:
+            pass
+        else:
+            # TODO : error handle
+            pass
+        server_log.info('syn immediately response: ' + str(response.body))
+
+

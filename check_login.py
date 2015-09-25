@@ -67,8 +67,11 @@ class LoginChecker(object):
                         del LoginChecker.user_cache[expired]
             return
 
-        # self.check_ret_callback(False)
-        self.check_ret_callback(True)
+        # local test allow all account
+        if cfg.IS_REMOTE:
+            self.check_ret_callback(False)
+        else:
+            self.check_ret_callback(True)
 
 if __name__ == "__main__":
     app = LoginChecker()
