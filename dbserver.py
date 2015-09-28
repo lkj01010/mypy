@@ -33,7 +33,7 @@ class Application(tornado.web.Application):
         self.db = conn['dota']
         self.db.user.create_index('user_uid')
 
-        self.db.bill_test.create_index('billno')
+        self.db.bill.create_index('billno')
 
         tornado.web.Application.__init__(self, handlers, debug=True)
 
