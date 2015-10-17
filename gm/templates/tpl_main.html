@@ -1,0 +1,83 @@
+{% extends "outframe.html" %}
+
+{% block body %}
+    <div class="sidebar">
+        
+        <!--<div class="indextable">-->
+            <!--<div class="container">-->
+                <h5 id="cmd-title">管理指令</h5>
+            <!--</div>-->
+            <ul class="index-chapter">
+
+                <li><a href="./poem">测试跳转</a></li>
+                <li>游戏资源
+                    <ul class="index-section">
+                        <li><a href="./">增加金币</a></li>
+                        <li><a href="#ch3-2">增加钻石</a></li>
+                    </ul>
+                </li>
+               
+            </ul>
+        <!--</div>-->
+    </div>
+
+    <div class="article">
+        <!--<h5>用户登录</h5>-->
+        <div>
+            <form class="left-lt" method="post" action="/poem">
+                <span class="left-lt">用户ID</span> <input class="left-lt" type="text" name="userid"> <input class="left-lt" type="submit">
+            </form>
+        </div>
+
+        <br>
+        <br>
+
+        <!--<div class="content-menu">-->
+            <!--<ul>-->
+                <!--<li><a href="http://www.talkingdata.com">首页</a></li>-->
+                <!--<li><a href="http://www.talkingdata.com/index/#/mobileIndex/zh_cn">移动观象台</a>-->
+                <!--</li>-->
+            <!--</ul>-->
+        <!--</div>-->
+
+       <!-- <a href="void(0);" onclick="" class="zh-cn">简体</a>
+        <a href="void(0);" onclick="" class="zh-tw">繁体</a>
+        <a href="void(0);" onclick="" class="zh-en">English</a>
+        <div class="pad">
+            <table class="title-table" border="1">
+				&lt;!&ndash;<caption>Monthly savings</caption>&ndash;&gt;
+		&lt;!&ndash; 		<tr>
+					<th>Header 1</th>
+					<th>Header 2
+					</th>
+				</tr> &ndash;&gt;
+                <tr>
+                    <th>Month</th>
+                    <th>Savings</th>
+                    <th>Savings</th>
+                    <th>Savings</th>
+                    <th>Savings</th>
+                    <th>Savings</th>
+                </tr>
+				<tr>
+				<td class="success">row 1, cell 1
+					<ul style="list-style-type:disc">
+						 <li>Apples</li>
+						 <li>Bananas</li>
+						 <li>Lemons</li>
+						 <li>Oranges</li>
+					</ul>
+				</td>
+				<td>row 1, cell 2</td>
+				</tr>
+				<tr>
+				<td>row 2, cell 1</td>
+				<td>row 2, cell 2</td>
+				</tr>
+			</table>
+        </div>-->
+
+        {%block content%}  
+        {%end%}  
+    </div>
+{% end %}
