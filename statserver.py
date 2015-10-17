@@ -36,7 +36,7 @@ class Application(tornado.web.Application):
 
 class WriteStatToDBHandler(tornado.web.RequestHandler):
 
-    _MAX_ACTION_EACH_ID = 3          # count of actions save to db each account
+    _MAX_ACTION_EACH_ID = 1000          # count of actions save to db each account
 
     def get(self):
         """as it is not a strictly important part, need not to check user certification"""

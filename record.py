@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import cfg
 import tornado.httpclient
 import tornado.ioloop
@@ -5,7 +6,8 @@ import tornado.ioloop
 import pymongo
 import json
 from log import server_log
-import copy
+import time
+import random
 
 class Record(object):
     def __init__(self, db_addr, db_port):
@@ -47,7 +49,8 @@ class Record(object):
             # "kapai_2": 1,
             # "kapai_8": 1,
             #
-            # "gold": 5000,
+            "gold": 99999,
+            "zuan": 99999,
             #
             # "11": 1,
             # "12": 1,
@@ -93,6 +96,11 @@ class Record(object):
                 return reply_dict
 
     '''-------------------------------------'''
+    def _make_userno(self):
+        count = self.db.user.count()
+        count = (10000 + count) * 100 + random.randint(0, 99)
+        return str(count)
+
     def get_record(self, user_uid):
         # server_log.info('get record. user_uid=' + user_uid)
         # if user_uid not in self.cache:
@@ -105,13 +113,18 @@ class Record(object):
                 if 'record' in find_ret and type(find_ret['record']) is dict:
                     # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
                     reply_dict = find_ret['record']
+
+                """add unique number id"""
+                if 'userno' not in reply_dict:
+                    reply_dict['userno'] = self._make_userno()
             else:
                 server_log.info('not find record of user_uid=' + user_uid + ', make default record !!!')
                 record_doc = dict()
                 record_doc['user_uid'] = user_uid
                 record_doc['record'] = Record.default_record()
+                record_doc['record']['userno'] = self._make_userno()
                 self.db.user.insert(record_doc)
-                reply_dict = Record.default_record()
+                reply_dict = record_doc['record']
 
         #     self.cache[user_uid] = reply_dict
             return reply_dict

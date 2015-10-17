@@ -21,7 +21,7 @@ class LoginChecker(object):
         is_need_check = False
         if user_id in LoginChecker.user_cache.keys():
             if user_key in LoginChecker.user_cache[user_id]:
-                server_log.warn('WA!!!!!!! in it !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                server_log.warn('check ok, account in cache')
                 self.check_ret_callback(True)
             else:
                 is_need_check = True
@@ -46,9 +46,16 @@ class LoginChecker(object):
             return False
 
     def _check_response_callback(self, response):
-        # server_log.info('check_callback: ' + str(response.body))
+        server_log.info('check_callback: ' + str(response.body))
+
         if response and response.body:
             j_body = json.JSONDecoder().decode(response.body.lstrip('cb(').rstrip(')'))
+
+            if 'data' not in j_body and cfg.IS_REMOTE == 0:
+                """client request's parameters are invalid"""
+                self.check_ret_callback(False)
+                return
+
             if j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
                 openid = j_body['openid']
 
@@ -68,7 +75,7 @@ class LoginChecker(object):
             return
 
         # local test allow all account
-        if cfg.IS_REMOTE:
+        if cfg.IS_REMOTE == 1:
             self.check_ret_callback(False)
         else:
             self.check_ret_callback(True)

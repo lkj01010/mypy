@@ -78,6 +78,8 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    time_str = time.mktime(time.localtime())
+
     i = iter("abcd")
     print i.next()
     print i.next()

@@ -1,0 +1,12 @@
+{% extends "outframe.html" %}
+
+{% block body %}
+	<div class="article">
+	    <h5>用户登录</h5>
+	    <form method="post" action="/login">
+	        <p>用户名<br><input type="text" name="account"></p>
+	        <p>密码<br><input type="text" name="password"></p>
+	        <input type="submit">
+	    </form>
+    </div>
+{% end %}

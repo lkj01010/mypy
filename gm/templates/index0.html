@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+        <link rel="stylesheet" href="{{ static_url("style.css") }}">
+        <title>dota管理后台</title>
+
+<!--       <link href="http://apps.bdimg.com/libs/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+        <script src="http://apps.bdimg.com/libs/bootstrap/3.3.0/css/bootstrap-theme.min.css"></script>
+        <script src="http://apps.bdimg.com/libs/jquery/2.0.0/jquery.min.js"></script>
+        <script src="http://apps.bdimg.com/libs/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+--> 
+        <!--<link href="styles.css" type="text/css" rel="stylesheet">-->
+    </head>
+    <body>
+        <div class="top">
+            <h1>Game Manager</h1>
+        </div>
+
+        <div class="top">
+        
+            <div class="sidebar">
+                <div class="indextable">
+                    <ul class="index-chapter">
+                        <li><a href="./poem">测试跳转</a></li>
+                        <li><a href="./ch1.html">第一章：引言</a></li>
+                        <li><a href="./ch2.html">第二章：表单和模板</a></li>
+                        <li><a href="./ch3.html" class="current-chapter">第三章：模板扩展</a></li>
+                        <ul class="index-section">
+                            <li><a href="#ch3-1">3.1 块和替换</a></li>
+                            <ul class="index-section">
+                                <li><a href="#ch3-1-1">3.1.1 块基础</a></li>
+                                <li><a href="#ch3-1-2">3.1.2 模板练习：Burt's Book</a></li>
+                                <li><a href="#ch3-1-3">3.1.3 自动转义</a></li>
+                            </ul>
+                            <li><a href="#ch3-2">3.2 UI模块</a></li>
+                            <ul class="index-section">
+                                <li><a href="#ch3-2-1">3.2.1 基础模块使用</a></li>
+                                <li><a href="#ch3-2-2">3.2.2 模块深入</a></li>
+                                <li><a href="#ch3-2-3">3.2.3 嵌入JavaScript和CSS</a></li>
+                            </ul>
+                            <li><a href="#ch3-3">3.3 总结</a></li>
+                        </ul>
+                        <li><a href="./ch4.html">第四章：数据库</a></li>
+                        <li><a href="./ch5.html">第五章：异步Web服务</a></li>
+                        <li><a href="./ch6.html">第六章：编写安全应用</a></li>
+                        <li><a href="./ch7.html">第七章：外部服务认证</a></li>
+                        <li><a href="./ch8.html">第八章：部署Tornado</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="article">
+                <h5>用户登录</h5>
+                <form method="post" action="/poem">
+                    <p>Plural noun<br><input type="text" name="noun1"></p>
+                    <p>Singular noun<br><input type="text" name="noun2"></p>
+                    <p>Verb (past tense)<br><input type="text" name="verb"></p>
+                    <p>Noun<br><input type="text" name="noun3"></p>
+                    <input type="submit">
+                </form>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <small>© 本文由<a href="http://www.pythoner.com">你像从前一样</a>翻译，转载请注明出处。本书版权由原作者拥有。</small>
+        </div>
+    </body>
+</html>

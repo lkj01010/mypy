@@ -41,15 +41,15 @@ class Application(tornado.web.Application):
             'data': [ {'billno': '-3138_A50009_1_1442038070_5357735', 'cost':8} ]
         }
         """
-        if bill_dict['code'] == 0:  # pay success
+        # print 'bill_dict str: ', str(bill_dict)
+        if 'code' in bill_dict.keys() and bill_dict['code'] == 0:  # pay success
             bill_dict['data'][0]['user_id'] = openid
             bill_dict['data'][0]['user_pf'] = user_pf
             bill_dict['data'][0]['itemid'] = itemid
             data_str = json.JSONEncoder().encode(bill_dict['data'][0])
             # bill_str = json.dumps(bill_dict, indent=4, ensure_ascii=False).encode('utf8')
-            request = tornado.httpclient.HTTPRequest(
-                'http://' + cfg.DB_SERVER_ADDR + ':' + str(cfg.DB_SERVER_PORT) + '/billinfo',
-                method='POST', body=data_str)
+            request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER + '/billinfo',
+                                                        method='POST', body=data_str)
             self.notify_client.fetch(request, callback=Application.push_billinfo_to_db_callback)
 
     @staticmethod
@@ -119,6 +119,7 @@ class ApiHandler(tornado.web.RequestHandler):
         self.write(reply)
 
 if __name__ == "__main__":
+    server_log.info('openapiserver start.')
     app = Application()
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)
