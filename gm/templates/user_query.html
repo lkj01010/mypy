@@ -1,9 +1,25 @@
 {% extends "tpl_main.html" %}
 
 {% block content %}
-      <!--<div>
-            <form class="left-lt" method="post" action="/poem">
-                <span class="left-lt">用户ID</span> <input class="left-lt" type="text" name="userid"> <input class="left-lt" type="submit">
+      <!--<h5>用户登录</h5>-->
+        <div>
+            <form class="left-lt" method="post" action="/userDetail">
+                <span class="left-lt">用户ID</span> <input class="left-lt" type="text" name="userno"> <input class="left-lt" type="submit">
             </form>
-       </div>-->
+        </div>
+
+        <br>
+        <br>
+
+        {% block userDetail %}
+        {% end %}
+
+        <!--<div class="content-menu">-->
+            <!--<ul>-->
+                <!--<li><a href="http://www.talkingdata.com">首页</a></li>-->
+                <!--<li><a href="http://www.talkingdata.com/index/#/mobileIndex/zh_cn">移动观象台</a>-->
+                <!--</li>-->
+            <!--</ul>-->
+        <!--</div>-->
+
 {% end %}

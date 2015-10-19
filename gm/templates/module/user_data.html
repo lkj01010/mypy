@@ -1,0 +1,11 @@
+<table class="title-table" border="1">
+    <tr>
+        {% for key in items %}
+            <th>{{key}}</th>
+        {% end %}
+    </tr>
+    <tr>
+        {% for key in items %}
+            <td>{{items[key]}}</td>
+        {% end %}
+</table>
