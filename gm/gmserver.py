@@ -21,7 +21,10 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [(r'/', IndexHandler),
                     (r'/login', LoginHandler),
-                    (r'/userDetail', UserDetailHandler)]
+                    (r'/userDetail', UserDetailHandler),
+                    (r'/userDetail/changeGold', UserDetailChangeGoldHandler),
+                    (r'/userDetail/changeZuan', UserDetailChangeZaunHandler),
+                    (r'/test', TestHandler)]
 
         server_log.info('gm server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
 
@@ -43,6 +46,10 @@ class LoginHandler(tornado.web.RequestHandler):
     def post(self):
         self.render('user_query.html')
 
+class TestHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render('index_login.html')
+
 class UserDetailHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('index_login.html')
@@ -59,10 +66,44 @@ class UserDetailHandler(tornado.web.RequestHandler):
             user_data = dict()
         self.render('user_query_detail.html', ret_msg=ret_msg, data=user_data)
 
+class UserDetailChangeGoldHandler(tornado.web.RequestHandler):
+    def post(self):
+        gold = self.get_argument('changeGold')
+        user_data = self.application.db.user.update({'record.userno': userno})
+        ret_msg = str()
+        if not user_data or len(user_data) == 0:
+           ret_msg = u"没有该用户"
+        else:
+           ret_msg = u"用户编号：" + userno
+        if not user_data:
+            user_data = dict()
+        self.render('user_query_detail.html', ret_msg=ret_msg, data=user_data)
+
+class UserDetailChangeZaunHandler(tornado.web.RequestHandler):
+    def post(self):
+        userno = self.get_argument('userno')
+        user_data = self.application.db.user.find_one({'record.userno': userno})
+        ret_msg = str()
+        if not user_data or len(user_data) == 0:
+           ret_msg = u"没有该用户"
+        else:
+           ret_msg = u"用户编号：" + userno
+        if not user_data:
+            user_data = dict()
+        self.render('user_query_detail.html', ret_msg=ret_msg, data=user_data)
+
 class UserDataModule(tornado.web.UIModule):
     def render(self, data):
         if data and 'record' in data.keys():
-            return self.render_string('module/user_data.html', items=data['record'])
+            gold = 0
+            zuan = 0
+            if 'gold' in data['record'].keys():
+                gold = data['record']['gold']
+            if 'zuan' in data['record'].keys():
+                zuan = data['record']['zuan']
+            msg_gold = u"当前金币：" + str(gold)
+            msg_zuan = u"当前钻石：" + str(zuan)
+            return self.render_string('module/user_data.html', items=data['record'], msg_gold=msg_gold, msg_zuan=msg_zuan)
         else:
             return self.render_string('module/user_data.html', items=dict())
 

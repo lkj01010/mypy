@@ -161,9 +161,16 @@ h4 {
     border-collapse: collapse;
 }
 
-.title-table tr th {
-    width: 200px;
-    color: #333;
+.title-table tr th, .title-table tr{
+    margin: 10px;
+    width: 400px;
+    bgColor: #333;
+    align: center;
+}
+
+.value-td {
+    width:50px;
+    margin: 10px;
 }
 .content-menu {
   float: left;

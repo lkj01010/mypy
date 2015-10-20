@@ -1,11 +1,31 @@
+<div>
+    <form class="pad" method="post" action="/userDetail">
+        <span class="left-lt">{{msg_gold}}</span>
+        <input class="left-lt" type="text" name="change_gold">
+        <input class="left-lt" text="jjj" type="submit">
+    </form>
+</div>
+<br>
+<div>
+    <form class="pad" method="post" action="/userDetail">
+        <span class="left-lt">{{msg_zuan}}</span>
+        <input class="left-lt" type="text" name="change_zuan">
+        <input class="left-lt"  text="jjj" type="button" value="修改">
+    </form>
+</div>
+
 <table class="title-table" border="1">
     <tr>
         {% for key in items %}
-            <th>{{key}}</th>
+            <td>{{key}}</td>
         {% end %}
     </tr>
     <tr>
         {% for key in items %}
-            <td>{{items[key]}}</td>
+            <td class="value-td">{{items[key]}}</td>
         {% end %}
+    </tr>
+
 </table>
+
+
