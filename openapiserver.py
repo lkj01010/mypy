@@ -25,13 +25,17 @@ class Application(tornado.web.Application):
 
     def __init__(self):
         handlers = [
-            (r"/", ApiHandler)
+            (r"/", ApiHandler),
+            (r"/cmd", CommandHandler)
         ]
         self.api = openapi_v3.OpenAPIV3(Application.APP_ID,
                                         Application.APP_KEY,
                                         Application.SERVER_LIST)
 
         self.notify_client = tornado.httpclient.AsyncHTTPClient()
+
+        self.running = True
+
         tornado.web.Application.__init__(self, handlers, debug=True)
 
     def push_billinfo_to_db(self, openid, user_pf, itemid, bill_dict):
@@ -59,6 +63,10 @@ class Application(tornado.web.Application):
 class ApiHandler(tornado.web.RequestHandler):
 
     def get(self):
+        if not self.application.running:
+            self.send_error()
+            return
+
         print 'api uri:', self.request.uri
         server_log.info('api uri:' + self.request.uri)
         try:
@@ -83,6 +91,14 @@ class ApiHandler(tornado.web.RequestHandler):
             jdata['openid'] = openid
             jdata['openkey'] = openkey
             # reply = json.JSONEncoder().encode(jdata)
+            reply = json.dumps(jdata, ensure_ascii=False).encode('utf8')
+        elif api == 'k_islogin':
+            jdata = self.application.api.call('/v3/user/is_login', {
+                'openid': openid,
+                'openkey': openkey,
+                'pf': platform,
+            })
+            jdata['is_ok'] = 1
             reply = json.dumps(jdata, ensure_ascii=False).encode('utf8')
         elif api == 'k_playzone_userinfo':
             jdata = self.application.api.call('/v3/user/get_playzone_userinfo', {
@@ -117,6 +133,30 @@ class ApiHandler(tornado.web.RequestHandler):
         # lkj bug: how to show unicode - chinese
         reply = callback.encode('utf8') + '(' + reply + ')'
         self.write(reply)
+
+
+class CommandHandler(tornado.web.RequestHandler):
+    # def data_received(self, chunk):
+    #     pass
+
+    def post(self, *args, **kwargs):
+        command_str = self.request.body
+        command_dict = json.JSONDecoder().decode(command_str)
+
+        try:
+            if command_dict["type"] == 0:
+                self.application.running = False
+                self.write("{'ok': 1, 'msg': 'openapi server stop servering'}")
+                server_log.info('openapi server stop servering')
+                print 'openapi server stop servering'
+            elif command_dict["type"] == 1:
+                self.application.running = True
+                self.write("{'ok': 1, 'msg': 'openapi server start servering'}")
+                server_log.info('openapi server start servering')
+                print 'openapi server start servering'
+        except KeyError:
+                self.write("{'ok': 0, 'msg': 'exception occur'}")
+
 
 if __name__ == "__main__":
     server_log.info('openapiserver start.')

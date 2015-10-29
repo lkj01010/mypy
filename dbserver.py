@@ -46,11 +46,11 @@ class WriteRecordToDBHandler(tornado.web.RequestHandler):
         batch_str = self.request.body
         # print 'will write this: ', str(batch_str)
         batch_dict = json.JSONDecoder().decode(batch_str)
-        set_dict = dict()
         # modify_time = time.ctime()
         modify_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         for user_id, record_dict in batch_dict.items():
             """ split the dict, and update data partly use '$set' to db"""
+            set_dict = dict()
             set_dict['user_uid'] = user_id
             set_string = ''
             for k, v in record_dict.items():

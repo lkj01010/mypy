@@ -1,0 +1,37 @@
+{% extends "index.html" %}
+
+{% block body %}
+    <div class="sidebar">
+        
+        <div class="indextable">
+            <div class="container">
+                <h5>管理指令</h5>
+            </div>
+            <ul class="index-chapter">
+
+                <li><a href="./poem">测试跳转</a></li>
+                <li>游戏资源
+                    <ul class="index-section">
+                        <li><a href="./">增加金币</a></li>
+                        <li><a href="#ch3-2">增加钻石</a></li>
+                    </ul>
+                </li>
+               
+            </ul>
+        </div>
+    </div>
+
+    <div class="article">
+        <h5>用户登录</h5>
+        <form method="post" action="/poem">
+            <p>Plural noun<br><input type="text" name="noun1"></p>
+            <p>Singular noun<br><input type="text" name="noun2"></p>
+            <p>Verb (past tense)<br><input type="text" name="verb"></p>
+            <p>Noun<br><input type="text" name="noun3"></p>
+            <input type="submit">
+        </form>
+
+        {%block content%}  
+        {%end%}  
+    </div>
+{% end %}

@@ -4,7 +4,7 @@ from log import server_log
 import time
 import check_login
 
-TENCENT_ACCOUNT_SERVER = 'http://203.195.243.33:12303/'
+TENCENT_ACCOUNT_SERVER = 'http://203.195.243.33:12303'
 
 class CheckLoginTest:
     def __init__(self):
@@ -24,7 +24,7 @@ class CheckLoginTest:
 
             chk_client = tornado.httpclient.HTTPClient()
             request1 = tornado.httpclient.HTTPRequest(TENCENT_ACCOUNT_SERVER +
-                                                     'openid=' + user_id +
+                                                     '/?openid=' + user_id +
                                                      '&openkey=' + user_key +
                                                     '&api=k_userinfo' +
                                                      '&platform=wanba_ts' +
@@ -45,6 +45,14 @@ class CheckLoginTest:
             checker.check_info(user_id, user_key, self._test_callback)
 
 if __name__ == "__main__":
+
+    dict = {'Name': 'Zara', 'Age': {'xx':1}}
+    dict2 = {'Age': {'ffff': 'female' }}
+
+    dict.update(dict2)
+    print "Value : %s" %  dict
+
+
     app = CheckLoginTest()
     # app.test()
     app.check_login_checker()

@@ -31,10 +31,10 @@ class LoginChecker(object):
             is_need_check = True
 
         if is_need_check:
-            server_log.info('need check_info, user_id = ' + user_id, 'user_key = ' + user_key)
+            server_log.info('need check_info, user_id = ' + user_id + 'user_key = ' + user_key)
             '''should check from tencent server'''
             request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER +
-                                                     '?openid=' + user_id +
+                                                     '/?openid=' + user_id +
                                                      '&openkey=' + user_key +
                                                     '&user_pf=' + zoneid +
                                                     '&api=k_playzone_userinfo' +

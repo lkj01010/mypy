@@ -26,10 +26,13 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/writeDirtyRecord", WriteDirtyRecordHandler),
-            (r"/readRecord", ReadRecordHandler)
+            (r"/readRecord", ReadRecordHandler),
+            (r"/cmd", CommandHandler)
         ]
         self.record_mod = record.Record(options.db_addr, options.db_port)
+        self.running = True
 
+        server_log.info('record server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
         tornado.web.Application.__init__(self, handlers, debug=False)
 
     def termly_push_records_to_db(self):
@@ -82,15 +85,18 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self, *args, **kwargs):
-        try:
-            user_id = self.get_argument('user_id')
-            user_key = self.get_argument('user_key')
-            zoneid = self.get_argument('user_pf')
-        except KeyError:
-            server_log.warning("Failed to get argument", exc_info=True)
+        if self.application.running:
+            try:
+                user_id = self.get_argument('user_id')
+                user_key = self.get_argument('user_key')
+                zoneid = self.get_argument('user_pf')
+            except KeyError:
+                server_log.warning("Failed to get argument", exc_info=True)
 
-        checker = check_login.LoginChecker()
-        checker.check_info(user_id, user_key, zoneid, self._check_ret_callback)
+            checker = check_login.LoginChecker()
+            checker.check_info(user_id, user_key, zoneid, self._check_ret_callback)
+        else:
+            self.send_error()
 
     def _check_ret_callback(self, is_valid):
         if is_valid:
@@ -137,6 +143,25 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
         print "lenth is", lenth
         print coll.count()
 
+class CommandHandler(tornado.web.RequestHandler):
+    def data_received(self, chunk):
+        pass
+
+    def post(self, *args, **kwargs):
+        command_str = self.request.body
+        command_dict = json.JSONDecoder().decode(command_str)
+
+        try:
+            if command_dict["type"] == 0:
+                self.application.running = False
+                self.write("{'ok': 1, 'msg': 'recordserver stop servering'}")
+                server_log.info('recordserver stop servering')
+            elif command_dict["type"] == 1:
+                self.application.running = True
+                self.write("{'ok': 1, 'msg': 'recordserver start servering'}")
+                server_log.info('recordserver start servering')
+        except KeyError:
+                self.write("{'ok': 0, 'msg': 'exception occur'}")
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
