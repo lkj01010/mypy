@@ -15,8 +15,6 @@ class Record(object):
         conn = pymongo.MongoClient(db_addr, db_port)
 
         self.db = conn['dota']
-        # for index in self.db.user.list_indexes():
-        #     print(index)
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
         self.db.user.create_index('user_uid')
         self.db_client = tornado.httpclient.AsyncHTTPClient()
@@ -139,7 +137,6 @@ class Record(object):
                 self.db.user.insert(record_doc)
                 reply_dict = record_doc['record']
 
-        #     self.cache[user_uid] = reply_dict
             return reply_dict
         # else:
         #     server_log.info('in cache, record=' + str(self.cache[user_uid]))
@@ -147,25 +144,22 @@ class Record(object):
 
     def commit_dirty_record(self, user_uid, dirty_record_str):
         dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
-        # if not self.cache.has_key(user_uid):
-        #     self.cache[user_uid] = dict()
-        # self.cache[user_uid].update(dirty_record_dict)
 
         if user_uid not in self.batch:
             server_log.error('new dict')
             self.batch[user_uid] = dict()
 
-        server_log.error('user_uid: '+ user_uid + ', dirty_str: ' + dirty_record_str)
-        server_log.error('batch before attach: ' + str(self.batch))
+        # server_log.error('user_uid: ' + user_uid + ', dirty_str: ' + dirty_record_str)
+        # server_log.error('batch before attach: ' + str(self.batch))
         self.batch[user_uid].update(dirty_record_dict)
-        server_log.error('batch after attach: ' + str(self.batch))
+        # server_log.error('batch after attach: ' + str(self.batch))
 
         if user_uid in self.batch_on_pushing:
             self.batch_on_pushing[user_uid].update(dirty_record_dict)
 
     def push_records_to_db(self):
         j_record_batch = json.JSONEncoder().encode(self.batch)
-        server_log.error('push batch: ' + j_record_batch)
+        # server_log.error('push batch: ' + j_record_batch)
         request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
         self.db_client.fetch(request, callback=self.push_records_to_db_callback)
 
