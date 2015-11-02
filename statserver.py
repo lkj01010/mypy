@@ -28,7 +28,8 @@ class Application(tornado.web.Application):
             (r"/querySrvState", QuerySrvStateHandler),
             (r"/cmd", CommandHandler),
         ]
-        server_log.info('stat server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
+        server_log.info('stat server start on port: ' + str(options.port) +
+                        ' db[' + options.db_addr + ':' + str(options.db_port) + ']')
 
         conn = pymongo.MongoClient(options.db_addr, options.db_port)
         self.db = conn['dota']
