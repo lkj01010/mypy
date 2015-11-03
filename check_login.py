@@ -9,76 +9,71 @@ class LoginChecker(object):
 
     # !!! user has multi keys when login multi device , we cache all these keys, neither we will check them endlessly
     user_cache = dict()
-    user_expire_holder = list()
+    _CLEANUP_INTERVAL = 3600 * 1000
 
     def __init__(self):
         self.chk_client = tornado.httpclient.AsyncHTTPClient()
         self.check_ret_callback = None
+        time_task = tornado.ioloop.PeriodicCallback(self._clean_up, LoginChecker._CLEANUP_INTERVAL)
+        time_task.start()
+
+    @staticmethod
+    def _clean_up():
+        LoginChecker.user_cache = dict()
 
     def check_info(self, user_id, user_key, zoneid, callback):
         self.check_ret_callback = callback
 
-        is_need_check = False
-        if user_id in LoginChecker.user_cache.keys():
-            if user_key in LoginChecker.user_cache[user_id]:
-                server_log.warn('check ok, account in cache')
-                self.check_ret_callback(True)
-            else:
-                is_need_check = True
+        if cfg.IS_REMOTE == 0:
+            self.check_ret_callback(True)
         else:
-            '''insure key-set in user_cache'''
-            LoginChecker.user_cache[user_id] = set()
-            is_need_check = True
+            is_need_check = False
+            if user_id in LoginChecker.user_cache.keys():
+                if user_key in LoginChecker.user_cache[user_id]:
+                    server_log.warn('check ok, account in cache')
+                    self.check_ret_callback(True)
+                else:
+                    is_need_check = True
+            else:
+                '''insure key-set in user_cache'''
+                LoginChecker.user_cache[user_id] = set()
+                server_log.warn('user_cache len: %d, user add: %s' % (len(LoginChecker.user_cache), user_id))
+                is_need_check = True
 
-        if is_need_check:
-            server_log.info('need check_info, user_id = ' + user_id + 'user_key = ' + user_key)
-            '''should check from tencent server'''
-            request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER +
-                                                     '/?openid=' + user_id +
-                                                     '&openkey=' + user_key +
-                                                    '&user_pf=' + zoneid +
-                                                    '&api=k_playzone_userinfo' +
-                                                     '&platform=qzone' +
-                                                    '&callback=cb',
-                                                    method='GET')
-            server_log.info('new active url: ' + request.url)
-            self.chk_client.fetch(request, callback=self._check_response_callback)
-            return False
+            if is_need_check:
+                server_log.info('need check_info, user_id = ' + user_id + 'user_key = ' + user_key)
+                '''should check from tencent server'''
+                request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER +
+                                                         '/?openid=' + user_id +
+                                                         '&openkey=' + user_key +
+                                                        '&user_pf=' + zoneid +
+                                                        '&api=k_playzone_userinfo' +
+                                                         '&platform=qzone' +
+                                                        '&callback=cb',
+                                                        method='GET')
+                server_log.info('new active url: ' + request.url)
+                self.chk_client.fetch(request, callback=self._check_response_callback)
 
     def _check_response_callback(self, response):
         server_log.info('check_callback: ' + str(response.body))
 
+        is_valid = False
         if response and response.body:
             j_body = json.JSONDecoder().decode(response.body.lstrip('cb(').rstrip(')'))
 
-            if 'data' not in j_body and cfg.IS_REMOTE == 0:
-                """client request's parameters are invalid"""
-                self.check_ret_callback(False)
-                return
-
-            if j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
+            if 'data'in j_body and j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
                 openid = j_body['openid']
-
-                server_log.warn('1 user_cache len: %d' % len(LoginChecker.user_cache))
                 LoginChecker.user_cache[openid].add(j_body['openkey'])
-                server_log.warn('2 user_cache len: %d' % len(LoginChecker.user_cache))
+                is_valid = True
 
-                server_log.warn('user_cache push: ' + openid)
-                LoginChecker.user_expire_holder.append(openid)
-                self.check_ret_callback(True)
-                '''hold a max number of active accounts'''
-                if len(LoginChecker.user_expire_holder) > 10000:
-                    expired = LoginChecker.user_expire_holder.pop(0)
-                    if expired:
-                        server_log.error('expired: ' + expired)
-                        del LoginChecker.user_cache[expired]
-            return
+                # '''hold a max number of active accounts'''
+                # if len(LoginChecker.user_expire_holder) > 10000:
+                #     expired = LoginChecker.user_expire_holder.pop(0)
+                #     if expired:
+                #         server_log.error('expired: ' + expired)
+                #         del LoginChecker.user_cache[expired]
 
-        # local test allow all account
-        if cfg.IS_REMOTE == 1:
-            self.check_ret_callback(False)
-        else:
-            self.check_ret_callback(True)
+        self.check_ret_callback(is_valid)
 
 if __name__ == "__main__":
     app = LoginChecker()

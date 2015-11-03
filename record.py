@@ -108,7 +108,7 @@ class Record(object):
             find_ret = self.db.user.find_one({'user_uid': user_uid})
 
             if find_ret:
-                server_log.info('db find, record=' + str(find_ret))
+                server_log.info('db find')
                 del find_ret['_id']
                 reply_dict = dict()
                 if 'record' in find_ret and type(find_ret['record']) is dict:
