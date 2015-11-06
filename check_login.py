@@ -63,6 +63,10 @@ class LoginChecker(object):
 
             if 'data'in j_body and j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
                 openid = j_body['openid']
+                if openid in LoginChecker.user_cache:
+                    pass
+                else:
+                    LoginChecker.user_cache[openid] = set()
                 LoginChecker.user_cache[openid].add(j_body['openkey'])
                 is_valid = True
 
