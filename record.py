@@ -122,7 +122,7 @@ class Record(object):
         count = (10000 + count) * 100 + random.randint(0, 99)
         return str(count)
 
-    '''-------------------------------------'''
+    '''-----------------------------------x--'''
 
     def get_record__old(self, user_uid):
         # server_log.info('get record. user_uid=' + user_uid)
