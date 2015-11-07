@@ -18,6 +18,9 @@ class _DataHolder(object):
 
 
 class Record(object):
+
+    _SYN_DB_INTERVAL = 180000
+
     def __init__(self, db_addr, db_port):
         conn = pymongo.MongoClient(db_addr, db_port)
 
@@ -25,8 +28,13 @@ class Record(object):
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
         self.db.user.create_index('user_uid')
         self.db_client = tornado.httpclient.AsyncHTTPClient()
+        """record save in"""
         self.cache = dict()
-        pass
+        """record will push in"""
+        self.push_dict = dict()
+
+        time_task = tornado.ioloop.PeriodicCallback(self.push_dirty_records_to_db, Record._SYN_DB_INTERVAL)
+        time_task.start()
 
     @staticmethod
     def default_record():
@@ -84,6 +92,7 @@ class Record(object):
                 record_doc['record'] = Record.default_record()
                 self.db.user.insert(record_doc)
                 reply_dict = Record.default_record()
+                reply_dict['userno'] = self._make_userno()
 
             self.cache[user_uid] = _DataHolder(reply_dict)
             return reply_dict
@@ -92,13 +101,28 @@ class Record(object):
         dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
         if user_uid in self.cache:  # normal
             self.cache[user_uid].data.update(dirty_record_dict)
+            self.cache[user_uid].touch += 1
         else:   # abnormal! error!
             pass
-    '''-------------------------------------'''
+
+    def push_dirty_records_to_db(self):
+        batch = dict()
+        for k, v in self.cache.items():
+            if v.touch > 0:
+                batch[k] = v.data
+                v.touch = 0
+
+        j_record_batch = json.JSONEncoder().encode(batch)
+        request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
+        self.db_client.fetch(request, callback=self.push_records_to_db_callback)
+        pass
+
     def _make_userno(self):
         count = self.db.user.count()
         count = (10000 + count) * 100 + random.randint(0, 99)
         return str(count)
+
+    '''-------------------------------------'''
 
     def get_record__old(self, user_uid):
         # server_log.info('get record. user_uid=' + user_uid)
