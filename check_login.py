@@ -4,6 +4,10 @@ from log import server_log
 import json
 import cfg
 
+class _TimeHelper(object):
+    def clean_up(self):
+        server_log.warn('clean_up Login info when user_cache len: %d' % (len(LoginChecker.user_cache)))
+        LoginChecker.user_cache = dict()
 
 class LoginChecker(object):
 
@@ -11,15 +15,12 @@ class LoginChecker(object):
     user_cache = dict()
     _CLEANUP_INTERVAL = 3600 * 1000
 
+    time_task = tornado.ioloop.PeriodicCallback(_TimeHelper().clean_up, _CLEANUP_INTERVAL)
+    time_task.start()
+
     def __init__(self):
         self.chk_client = tornado.httpclient.AsyncHTTPClient()
         self.check_ret_callback = None
-        time_task = tornado.ioloop.PeriodicCallback(self._clean_up, LoginChecker._CLEANUP_INTERVAL)
-        time_task.start()
-
-    @staticmethod
-    def _clean_up():
-        LoginChecker.user_cache = dict()
 
     def check_info(self, user_id, user_key, zoneid, callback):
         self.check_ret_callback = callback
@@ -61,25 +62,35 @@ class LoginChecker(object):
         if response and response.body:
             j_body = json.JSONDecoder().decode(response.body.lstrip('cb(').rstrip(')'))
 
+            server_log.warn('in _check_response_callback0, user_cache len: %d' % len(LoginChecker.user_cache))
+            # [[
             if 'data'in j_body and j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
                 openid = j_body['openid']
                 if openid in LoginChecker.user_cache:
                     pass
                 else:
                     LoginChecker.user_cache[openid] = set()
+                    server_log.warn('in _check_response_callback1, user_cache len: %d' % len(LoginChecker.user_cache))
                 LoginChecker.user_cache[openid].add(j_body['openkey'])
                 is_valid = True
 
-                # '''hold a max number of active accounts'''
-                # if len(LoginChecker.user_expire_holder) > 10000:
-                #     expired = LoginChecker.user_expire_holder.pop(0)
-                #     if expired:
-                #         server_log.error('expired: ' + expired)
-                #         del LoginChecker.user_cache[expired]
+            # ==============> test
+            # openid = j_body['openid']
+            # if openid in LoginChecker.user_cache:
+            #     pass
+            # else:
+            #     LoginChecker.user_cache[openid] = set()
+            # LoginChecker.user_cache[openid].add(j_body['openkey'])
+            # is_valid = True
+
+            # ]]
 
         self.check_ret_callback(is_valid)
 
+    def test(self, a):
+        pass
+
 if __name__ == "__main__":
     app = LoginChecker()
-    app.check_info('B1D43980E13A9C90F74F2C7405AE54A8', 'KFEJIFEIEKKFEJF012912', 1)
+    app.check_info('B1D43980E13A9C90F74F2C7405AE54A8', 'KFEJIFEIEKKFEJF012912', '1', app.test)
     tornado.ioloop.IOLoop.instance().start()
