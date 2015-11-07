@@ -78,6 +78,27 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    aa = {'a1': 1, 'b1': 2, 'c1': 3}
+    if 'a1' in aa:
+        print 'a1 in aa'
+
+    if 'a1' in aa.keys():
+        print 'a1 in aakeys'
+
+    str1 = 'xxxxx'
+    str2 = u'xxxxx'
+    if str1 == str2:
+        print str1,str2
+
+    bset = set()
+    bset.add('x1')
+    if 'x1' in bset:
+        print 'ok'
+    bset.add('x1')
+    print str(len(bset))
+
+    print str(len(aa))
+
     time_str = time.mktime(time.localtime())
 
     i = iter("abcd")
