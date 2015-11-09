@@ -78,7 +78,33 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    sss = '12345'
+    sss = sss[:-1]
+
+
+    import json
+    collection_path = list()
+    collection_path.append('stat')
+    collection_path.append('realtime')
+
+    stat_dict = dict()
+    stat_dict['collection'] = collection_path
+    stat_dict['key'] = {}
+
+    j_stat = json.JSONEncoder().encode(stat_dict)
+
+    logstr = ''
+    for i in range(1,3):
+        logstr += str(i)
+    print logstr + '123'
+
     aa = {'a1': 1, 'b1': 2, 'c1': 3}
+    for k, v in aa.items():
+        if v == 2:
+            del aa[k]
+
+    aa.clear()
+
     if 'a1' in aa:
         print 'a1 in aa'
 

@@ -7,6 +7,8 @@ import tornado.web
 
 import json
 import pymongo
+from pymongo.collection import Collection
+import datetime
 import pdb
 import copy
 import time
@@ -24,7 +26,9 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/", WriteRecordToDBHandler),
-            (r"/billinfo", WriteBillToDBHandler)
+            (r"/billinfo", WriteBillToDBHandler),
+            (r"/recordBatch", WriteRecordBatchHandler),
+            (r"/srvStat", WriteSrvStatHandler)
         ]
 
         server_log.info('db server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
@@ -34,6 +38,7 @@ class Application(tornado.web.Application):
         self.db.user.create_index('user_uid')
 
         self.db.bill.create_index('billno')
+        self.db.bill.create_index('create_time')
 
         tornado.web.Application.__init__(self, handlers, debug=True)
 
@@ -63,6 +68,19 @@ class WriteRecordToDBHandler(tornado.web.RequestHandler):
         self.write("{'ok': 1, 'msg': 'push record'}")
 
 
+class WriteRecordBatchHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        batch_str = self.request.body
+        batch_dict = json.JSONDecoder().decode(batch_str)
+        for user_id, record_dict in batch_dict.items():
+            record_dict['user_uid'] = user_id
+            record_dict['modify_time'] = datetime.datetime.now()
+            record_dict['record'] = batch_dict
+            server_log.info('db write this: user_uid:' + user_id + '\ndoc: ' + str(record_dict))
+            result = self.application.db.user.update({'user_uid': user_id}, record_dict, True, False)
+            print str(result)
+        self.write("{'ok': 1, 'msg': 'push record'}")
+
 class WriteBillToDBHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
@@ -70,12 +88,31 @@ class WriteBillToDBHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         bill_str = self.request.body
         bill_dict = json.JSONDecoder().decode(bill_str)
+        bill_dict['create_time'] = datetime.datetime.now()
 
         self.application.db.bill.insert_one(bill_dict)
         server_log.info('db write bill: ' + str(bill_dict))
 
         self.write("{'ok': 1, 'msg': 'push bill'}")
 
+class WriteSrvStatHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        stat_str = self.request.body
+        server_log.info('stat info: ' + stat_str)
+        stat_dict = json.JSONDecoder().decode(stat_str)
+        stat_dict['value']['time'] = datetime.datetime.now()
+
+        db = self.application.db
+        """stat_dict['collection'] should be a list string"""
+        name = ''
+        for v in stat_dict['collection']:
+            name += v + '.'
+        name = name[:-1]
+        c = Collection(db, name)
+        if stat_dict['key']:
+            c.update(stat_dict['key'], stat_dict['value'], True, False)
+        else:
+            c.insert_one(stat_dict['value'])
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()

@@ -35,10 +35,10 @@ class Application(tornado.web.Application):
         server_log.info('record server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
         tornado.web.Application.__init__(self, handlers, debug=False)
 
-    def termly_push_records_to_db(self):
-        time_task = tornado.ioloop.PeriodicCallback(self.record_mod.push_records_to_db, _SYN_DB_INTERVAL)
-        time_task.start()
-        pass
+    # def termly_push_records_to_db(self):
+    #     time_task = tornado.ioloop.PeriodicCallback(self.record_mod.push_records_to_db, _SYN_DB_INTERVAL)
+    #     time_task.start()
+    #     pass
 
 
 class ReadRecordHandler(tornado.web.RequestHandler):
@@ -104,7 +104,7 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
             user_uid = self.get_argument('user_id') + '_' + user_pf
             dirty_id = self.get_argument('dirty_id')
             # commit dirty record
-            self.application.record_mod.commit_dirty_record(user_uid, self.get_argument('dirty_record'))
+            self.application.record_mod.commit_record(user_uid, self.get_argument('dirty_record'))
             replay = self.get_argument('callback') + '({' + \
                 "'dirty_id':" + dirty_id + ',' + \
                 "'msg': 'push ok'" + \
@@ -166,7 +166,7 @@ class CommandHandler(tornado.web.RequestHandler):
 if __name__ == "__main__":
     tornado.options.parse_command_line()
     app = Application()
-    app.termly_push_records_to_db()
+    # app.termly_push_records_to_db()
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
