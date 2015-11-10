@@ -31,14 +31,19 @@ class Application(tornado.web.Application):
         ]
         self.record_mod = record.Record(options.db_addr, options.db_port)
         self.running = True
+        self._kick_dict = set()     # kicked player who can't read or write record
 
         server_log.info('record server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
         tornado.web.Application.__init__(self, handlers, debug=False)
 
-    # def termly_push_records_to_db(self):
-    #     time_task = tornado.ioloop.PeriodicCallback(self.record_mod.push_records_to_db, _SYN_DB_INTERVAL)
-    #     time_task.start()
-    #     pass
+    def in_kick(self, user_uid):
+        return user_uid in self._kick_dict
+
+    def add_to_kick(self, user_uid):
+        self._kick_dict.add(user_uid)
+
+    def remove_from_kick(self, user_uid):
+        self._kick_dict.remove(user_uid)
 
 
 class ReadRecordHandler(tornado.web.RequestHandler):
@@ -47,7 +52,6 @@ class ReadRecordHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-
         try:
             user_id = self.get_argument('user_id')
             user_key = self.get_argument('user_key')
@@ -55,8 +59,12 @@ class ReadRecordHandler(tornado.web.RequestHandler):
         except KeyError:
             server_log.warning("except KeyError: Failed to get argument", exc_info=True)
 
-        checker = check_login.LoginChecker()
-        checker.check_info(user_id, user_key, zoneid, self._check_ret_callback)
+        if self.application.in_kick(user_id + '_' + zoneid):
+            # kicked player
+            self.send_error()
+        else:
+            checker = check_login.LoginChecker()
+            checker.check_info(user_id, user_key, zoneid, self._check_ret_callback)
 
     def _check_ret_callback(self, is_valid):
         reply_dict = dict()
@@ -93,8 +101,12 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
             except KeyError:
                 server_log.warning("Failed to get argument", exc_info=True)
 
-            checker = check_login.LoginChecker()
-            checker.check_info(user_id, user_key, zoneid, self._check_ret_callback)
+            if self.application.in_kick(user_id + '_' + zoneid):
+                # kicked player
+                self.send_error()
+            else:
+                checker = check_login.LoginChecker()
+                checker.check_info(user_id, user_key, zoneid, self._check_ret_callback)
         else:
             self.send_error()
 
@@ -149,17 +161,36 @@ class CommandHandler(tornado.web.RequestHandler):
 
     def post(self, *args, **kwargs):
         command_str = self.request.body
+        server_log.warn('receive cmd :\n' + command_str)
         command_dict = json.JSONDecoder().decode(command_str)
 
         try:
-            if command_dict["type"] == 0:
-                self.application.running = False
-                self.write("{'ok': 1, 'msg': 'recordserver stop servering'}")
-                server_log.info('recordserver stop servering')
-            elif command_dict["type"] == 1:
-                self.application.running = True
-                self.write("{'ok': 1, 'msg': 'recordserver start servering'}")
-                server_log.info('recordserver start servering')
+            if 'type' in command_dict:
+                if command_dict["type"] == 0:
+                    self.application.running = False
+                    self.write("{'ok': 1, 'msg': 'recordserver stop servering'}")
+                    server_log.info('recordserver stop servering')
+                elif command_dict["type"] == 1:
+                    self.application.running = True
+                    self.write("{'ok': 1, 'msg': 'recordserver start servering'}")
+                    server_log.info('recordserver start servering')
+
+            elif 'cmd' in command_dict:
+                cmd_str = command_dict['cmd']
+                if cmd_str == 'kick':
+                    """{ 'cmd': 'kick',
+                            'param':{
+                                'user_uid': '???',
+                            }
+                        }
+                    """
+                    self.application.add_to_kick(command_dict['param']['user_uid'])
+                    self.application.record_mod.remove_from_cache(command_dict['param']['user_uid'])
+                elif cmd_str == 'unkick':
+                    self.application.remove_from_kick(command_dict['param']['user_uid'])
+
+            self.write("{'ok': 1}")
+
         except KeyError:
                 self.write("{'ok': 0, 'msg': 'exception occur'}")
 

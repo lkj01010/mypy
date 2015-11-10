@@ -73,11 +73,12 @@ class WriteRecordBatchHandler(tornado.web.RequestHandler):
         batch_str = self.request.body
         batch_dict = json.JSONDecoder().decode(batch_str)
         for user_id, record_dict in batch_dict.items():
-            record_dict['user_uid'] = user_id
-            record_dict['modify_time'] = datetime.datetime.now()
-            record_dict['record'] = batch_dict
-            server_log.info('db write this: user_uid:' + user_id + '\ndoc: ' + str(record_dict))
-            result = self.application.db.user.update({'user_uid': user_id}, record_dict, True, False)
+            doc = dict()
+            doc['user_uid'] = user_id
+            doc['modify_time'] = datetime.datetime.now()
+            doc['record'] = record_dict
+            server_log.info('db write this: user_uid:' + user_id + '\ndoc: ' + str(doc))
+            result = self.application.db.user.replace_one({'user_uid': user_id}, doc, True)
             print str(result)
         self.write("{'ok': 1, 'msg': 'push record'}")
 

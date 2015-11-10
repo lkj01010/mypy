@@ -12,8 +12,7 @@ RECORD_SERVER = 'http://127.0.0.1:12304'
 
 ''' NOTE pymongo
 1. update_one: sec param should like '$set  *****'  not a 'xx:xx' , must begin with '$', or you should use 'replace_one'
-
-
-
-
+'''
+''' NOTE tornado
+1. tornado.web: when reply to client, 'send_error()' contain 'finish'
 '''

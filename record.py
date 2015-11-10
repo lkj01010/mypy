@@ -24,7 +24,7 @@ class Record(object):
 
     _SYN_DB_INTERVAL = 10000    # 5*60*1000
     _CLEAN_INACTIVE_RECORDS_INTERVAL = 60000    # 6*60*60*1000
-    _STAT_INTERVAL = 10000  # 10*60*1000
+    _STAT_INTERVAL = 60000  # 10*60*1000
 
     def __init__(self, db_addr, db_port):
         conn = pymongo.MongoClient(db_addr, db_port)
@@ -51,36 +51,11 @@ class Record(object):
     @staticmethod
     def default_record():
         record = {
-            # '-1': 0,
-
-            # "0": 50,    # music
-            # "1": 50,    # effect
-            #
-            # "3": -1,    # daily reward
-            # "6": 3,     # liuxinghuoyu
-            # "7": 15,    # card bag space
-            #
-            # "kapailan": 3,
-            # "chapter": 1,
-            # "guanka": 1,
-            #
-            # "chengshiLv_1": 1,
-            # "chengshiLv_2": 1,
-            # "chengshiLv_3": 1,
-            #
-            # "kapai_1": 1,
-            # "kapai_2": 1,
-            # "kapai_8": 1,
-            #
-            "gold": 5000,
-            "zuan": 0,
-            #
-            # "11": 1,
-            # "12": 1,
-            # "13": 1,
-            # "14": 1,
-            # "15": 1,
-            # "16": 1
+            "gold" : 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
+            "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
+            "v_1" : 50, "v_2" : 1, "v_3" : 10, "v_8" : 0, "v_14" : 1,
+            "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
+            "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 1
         }
         return record
 
@@ -95,7 +70,8 @@ class Record(object):
             find_ret = self.db.user.find_one({'user_uid': user_uid})
             if find_ret:
                 del find_ret['_id']
-                del find_ret['create_time']
+                if 'create_time' in find_ret:
+                    del find_ret['create_time']
                 # reply_dict = dict()
                 # if 'record' in find_ret and type(find_ret['record']) is dict:
                     # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
@@ -120,12 +96,13 @@ class Record(object):
             self.cache[user_uid].data.update(dirty_record_dict)
             self.cache[user_uid].touch += 1
         else:   # abnormal! error!
-            """warning: nearly most time, user should in cache, but not!"""
+            # warning: nearly most time, user should in cache, but not!
             server_log.warning('warning: nearly most time, user should in cache, but not! user_uid=' + user_uid)
             find_ret = self.db.user.find_one({'user_uid': user_uid})
             if find_ret:
                 del find_ret['_id']
-                del find_ret['create_time']
+                if 'create_time' in find_ret:
+                    del find_ret['create_time']
                 reply_dict = find_ret['record']
                 reply_dict.update(dirty_record_dict)
                 self.cache[user_uid] = _DataHolder(reply_dict)
@@ -212,6 +189,12 @@ class Record(object):
     def _do_nothing(self, respond):
         pass
 
+    def remove_from_cache(self, user_uid):
+        try:
+            del self.cache[user_uid]
+        except KeyError:
+            server_log.error('remove_from_cache, user_uid=' + user_uid + 'not exist.')
+
     '''-----------------------------------x--'''
 
     def get_record__old(self, user_uid):
@@ -284,6 +267,3 @@ class Record(object):
             self.batch = copy.deepcopy(self.batch_on_pushing)
             self.batch_on_pushing.clear()
             server_log.info('push error !!!!!!!!!!!!! syn response: ' + str(response.body))
-
-
-
