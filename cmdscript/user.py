@@ -3,7 +3,9 @@ import tornado.options
 import httplib
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/' + '..')
+print 'dir __file__', os.path.abspath(__file__)
+print 'append ', os.path.dirname(os.path.abspath(__file__)) + '/' + '..'
 import cfg
 import json
 """why can't import mypy ???

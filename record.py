@@ -11,6 +11,8 @@ import random
 import copy
 import datetime
 
+import jjc
+
 
 class _DataHolder(object):
     def __init__(self, data):
@@ -48,6 +50,9 @@ class Record(object):
         time_task3 = tornado.ioloop.PeriodicCallback(self._stat_active_user, Record._STAT_INTERVAL)
         time_task3.start()
 
+        # jjc model
+        self.jjc_mod = jjc.JJC(self.db)
+
     @staticmethod
     def default_record():
         record = {
@@ -59,24 +64,13 @@ class Record(object):
         }
         return record
 
-    def get_record(self, user_uid):
-        """return a record (dict type)"""
-        self._stat_read_count += 1
+    def get_user_data(self, user_uid):
         if user_uid in self.cache:
-            reply_dict = self.cache[user_uid].data
-            server_log.warning("cache size=%d, in cache: user_uid=%s" % (len(self.cache), user_uid))
-            return reply_dict
+            return self.cache[user_uid].data
         else:
-            find_ret = self.db.user.find_one({'user_uid': user_uid})
+            find_ret = self.db.user.find_one({'user_uid': user_uid}, {'_id': False, 'create_time': False})
             if find_ret:
-                del find_ret['_id']
-                if 'create_time' in find_ret:
-                    del find_ret['create_time']
-                # reply_dict = dict()
-                # if 'record' in find_ret and type(find_ret['record']) is dict:
-                    # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
                 reply_dict = find_ret['record']
-                server_log.warning('cache size=%d,find from db user_uid=%s' % (len(self.cache), user_uid))
             else:
                 reply_dict = dict()
                 reply_dict['user_uid'] = user_uid
@@ -86,29 +80,60 @@ class Record(object):
                 self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
                 server_log.warning('cache size=%d,not found, new user_uid=%s' % (len(self.cache), user_uid))
                 reply_dict = reply_dict['record']
-            self.cache[user_uid] = _DataHolder(reply_dict)
+                self.cache[user_uid] = _DataHolder(reply_dict)
             return reply_dict
+
+    def get_record(self, user_uid):
+        """return a record (dict type)"""
+        self._stat_read_count += 1
+        # if user_uid in self.cache:
+        #     reply_dict = self.cache[user_uid].data
+        #     server_log.warning("cache size=%d, in cache: user_uid=%s" % (len(self.cache), user_uid))
+        #     return reply_dict
+        # else:
+        #     find_ret = self.db.user.find_one({'user_uid': user_uid})
+        #     if find_ret:
+        #         del find_ret['_id']
+        #         if 'create_time' in find_ret:
+        #             del find_ret['create_time']
+        #         reply_dict = find_ret['record']
+        #         server_log.warning('cache size=%d,find from db user_uid=%s' % (len(self.cache), user_uid))
+        #     else:
+        #         reply_dict = dict()
+        #         reply_dict['user_uid'] = user_uid
+        #         reply_dict['record'] = Record.default_record()
+        #         reply_dict['record']['userno'] = self._make_userno()
+        #         reply_dict['create_time'] = datetime.datetime.now()
+        #         self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
+        #         server_log.warning('cache size=%d,not found, new user_uid=%s' % (len(self.cache), user_uid))
+        #         reply_dict = reply_dict['record']
+        #     self.cache[user_uid] = _DataHolder(reply_dict)
+        #     return reply_dict
+        return self.get_user_data(user_uid)
 
     def commit_record(self, user_uid, dirty_record_str):
         self._stat_write_count += 1
         dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
-        if user_uid in self.cache:  # normal
-            self.cache[user_uid].data.update(dirty_record_dict)
-            self.cache[user_uid].touch += 1
-        else:   # abnormal! error!
-            # warning: nearly most time, user should in cache, but not!
-            server_log.warning('warning: nearly most time, user should in cache, but not! user_uid=' + user_uid)
-            find_ret = self.db.user.find_one({'user_uid': user_uid})
-            if find_ret:
-                del find_ret['_id']
-                if 'create_time' in find_ret:
-                    del find_ret['create_time']
-                reply_dict = find_ret['record']
-                reply_dict.update(dirty_record_dict)
-                self.cache[user_uid] = _DataHolder(reply_dict)
-                self.cache[user_uid].touch += 1
-            else:
-                server_log.error('error: commit record, but user not found!!!')
+        # if user_uid in self.cache:  # normal
+        #     self.cache[user_uid].data.update(dirty_record_dict)
+        #     self.cache[user_uid].touch += 1
+        # else:   # abnormal! error!
+        #     # warning: nearly most time, user should in cache, but not!
+        #     server_log.warning('warning: nearly most time, user should in cache, but not! user_uid=' + user_uid)
+        #     find_ret = self.db.user.find_one({'user_uid': user_uid})
+        #     if find_ret:
+        #         del find_ret['_id']
+        #         if 'create_time' in find_ret:
+        #             del find_ret['create_time']
+        #         reply_dict = find_ret['record']
+        #         reply_dict.update(dirty_record_dict)
+        #         self.cache[user_uid] = _DataHolder(reply_dict)
+        #         self.cache[user_uid].touch += 1
+        #     else:
+        #         server_log.error('error: commit record, but user not found!!!')
+        user_data_dict = self.get_user_data(user_uid)
+        user_data_dict.update(dirty_record_dict)
+        self.cache[user_uid].touch += 1
 
     def push_dirty_records_to_db(self):
         batch = dict()
@@ -194,6 +219,28 @@ class Record(object):
             del self.cache[user_uid]
         except KeyError:
             server_log.error('remove_from_cache, user_uid=' + user_uid + 'not exist.')
+
+    def handle_req(self, req):
+        try:
+            cmd = req['cmd']
+            body = req['body']
+            if cmd == 'jjc_ret':
+                self._handle_jjc_ret(body)
+
+        except KeyError:
+            server_log.error('handle_req, KeyError.')
+
+    def _handle_jjc_ret(self, body):
+        user_uid = body['user_uid']
+        # handle jjc logic
+        reply_dict = self.jjc_mod.handle_match_result(body['user_uid'], body['is_win'])
+        # then get out handled user data
+        user_info = self.jjc_mod.get_user_info(body['user_uid'])
+        # synchronous to cache
+        user_data_dict = self.get_user_data(user_uid)
+        user_data_dict.update(user_info)
+        # return the reply to client
+        return reply_dict
 
     '''-----------------------------------x--'''
 
