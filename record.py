@@ -51,7 +51,8 @@ class Record(object):
         time_task3.start()
 
         # jjc model
-        self.jjc_mod = jjc.JJC(self.db)
+        self._jjc_mod = jjc.JJC(self.db)
+        self._jjc_find_times = 0       # when find fail, continue to find until exceeding it
 
     @staticmethod
     def default_record():
@@ -224,23 +225,63 @@ class Record(object):
         try:
             cmd = req['cmd']
             body = req['body']
+
             if cmd == 'jjc_ret':
-                self._handle_jjc_ret(body)
+                reply_dict = self._handle_jjc_ret(body)
+            elif cmd == 'jjc_find':
+                reply_dict = self._handle_jjc_find(body)
+            elif cmd == 'jjc_tops':
+                reply_dict = self._handle_jjc_tops()
+
+            reply_dict['ret'] = 1
 
         except KeyError:
+            reply_dict = {'ret': 0}
             server_log.error('handle_req, KeyError.')
+
+        return reply_dict
 
     def _handle_jjc_ret(self, body):
         user_uid = body['user_uid']
         # handle jjc logic
-        reply_dict = self.jjc_mod.handle_match_result(body['user_uid'], body['is_win'])
+        reply_dict = self._jjc_mod.handle_match_result(body['user_uid'], body['is_win'])
         # then get out handled user data
-        user_info = self.jjc_mod.get_user_info(body['user_uid'])
+        user_info = self._jjc_mod.get_user_info(body['user_uid'])
         # synchronous to cache
         user_data_dict = self.get_user_data(user_uid)
         user_data_dict.update(user_info)
         # return the reply to client
         return reply_dict
+
+    def _handle_jjc_find(self, body):
+        user_uid = body['user_uid']
+        user_data = self.get_user_data(user_uid)
+
+        # commit user's jjc_cfg
+        user_data.update(body['jjc_cfg'])
+
+        self._jjc_find_times = 0
+        reply_dict = self.__do_jjc_find(user_uid)
+        return reply_dict
+
+    def __do_jjc_find(self, user_uid):
+        self._jjc_find_times += 1
+        if self._jjc_find_times > 3:
+            server_log.warning('[jjc] __do_jjc_find: not found for user_uid=' + user_uid)
+            return dict()
+
+        opponent_uid = self._jjc_mod.handle_find_opponent(user_uid)
+        opponent_data = self.get_user_data(opponent_uid)
+        if opponent_uid:
+            reply_dict = dict()
+            reply_dict['user_uid'] = opponent_uid
+            reply_dict['jjc_cfg'] = opponent_data['jjc_cfg']
+            return reply_dict
+        else:
+            return self.__do_jjc_find(user_uid)
+
+    def _handle_jjc_tops(self):
+        return self._jjc_mod.handle_get_top_players()
 
     '''-----------------------------------x--'''
 

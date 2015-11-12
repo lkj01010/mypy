@@ -16,3 +16,6 @@ RECORD_SERVER = 'http://127.0.0.1:12304'
 ''' NOTE tornado
 1. tornado.web: when reply to client, 'send_error()' contain 'finish'
 '''
+''' NOTE python
+1. OrderedDict only remember the order occur in 'init' or 'setitem'(push to the end)
+'''
