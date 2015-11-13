@@ -224,7 +224,8 @@ class Record(object):
     def handle_req(self, req):
         try:
             cmd = req['cmd']
-            body = req['body']
+            if 'body' in req:
+                body = req['body']
 
             if cmd == 'jjc_ret':
                 reply_dict = self._handle_jjc_ret(body)
