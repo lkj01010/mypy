@@ -81,7 +81,8 @@ class Record(object):
                 self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
                 server_log.warning('cache size=%d,not found, new user_uid=%s' % (len(self.cache), user_uid))
                 reply_dict = reply_dict['record']
-                self.cache[user_uid] = _DataHolder(reply_dict)
+
+            self.cache[user_uid] = _DataHolder(reply_dict)
             return reply_dict
 
     def get_record(self, user_uid):
@@ -221,16 +222,19 @@ class Record(object):
         except KeyError:
             server_log.error('remove_from_cache, user_uid=' + user_uid + 'not exist.')
 
-    def handle_req(self, req):
+    def handle_req(self, user_uid, req):
         try:
-            cmd = req['cmd']
-            if 'body' in req:
-                body = req['body']
+            req_dict = json.JSONDecoder().decode(req)
+            cmd = req_dict['cmd']
+            if 'body' in req_dict:
+                body = req_dict['body']
+            else:
+                body = dict()
 
             if cmd == 'jjc_ret':
-                reply_dict = self._handle_jjc_ret(body)
+                reply_dict = self._handle_jjc_ret(user_uid, body)
             elif cmd == 'jjc_find':
-                reply_dict = self._handle_jjc_find(body)
+                reply_dict = self._handle_jjc_find(user_uid, body)
             elif cmd == 'jjc_tops':
                 reply_dict = self._handle_jjc_tops()
 
@@ -242,8 +246,7 @@ class Record(object):
 
         return reply_dict
 
-    def _handle_jjc_ret(self, body):
-        user_uid = body['user_uid']
+    def _handle_jjc_ret(self, user_uid, body):
         # handle jjc logic
         reply_dict = self._jjc_mod.handle_match_result(body['user_uid'], body['is_win'])
         # then get out handled user data
@@ -254,12 +257,13 @@ class Record(object):
         # return the reply to client
         return reply_dict
 
-    def _handle_jjc_find(self, body):
-        user_uid = body['user_uid']
+    def _handle_jjc_find(self, user_uid, body):
         user_data = self.get_user_data(user_uid)
 
         # commit user's jjc_cfg
-        user_data.update(body['jjc_cfg'])
+        # if 'jjc_cfg' not in user_data:
+        #     user_data['jjc_cfg'] = dict()
+        user_data['jjc_cfg'] = body['jjc_cfg']
 
         self._jjc_find_times = 0
         reply_dict = self.__do_jjc_find(user_uid)
@@ -272,14 +276,26 @@ class Record(object):
             return dict()
 
         opponent_uid = self._jjc_mod.handle_find_opponent(user_uid)
-        opponent_data = self.get_user_data(opponent_uid)
+
+        # [[
+        # opponent_data = self.get_user_data(opponent_uid)
+        # if opponent_uid:
+        #     reply_dict = dict()
+        #     reply_dict['user_uid'] = opponent_uid
+        #     reply_dict['jjc_cfg'] = opponent_data['jjc_cfg']
+        #     return reply_dict
+        # else:
+        #     return self.__do_jjc_find(user_uid)
+        # =====================>
+        reply_dict = dict()
         if opponent_uid:
-            reply_dict = dict()
-            reply_dict['user_uid'] = opponent_uid
+            opponent_data = self.get_user_data(opponent_uid)
+            reply_dict['name'] = opponent_uid
             reply_dict['jjc_cfg'] = opponent_data['jjc_cfg']
             return reply_dict
         else:
-            return self.__do_jjc_find(user_uid)
+            return reply_dict
+        # ]]
 
     def _handle_jjc_tops(self):
         return self._jjc_mod.handle_get_top_players()

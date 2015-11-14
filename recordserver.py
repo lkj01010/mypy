@@ -16,8 +16,6 @@ import record
 from tornado.options import define, options
 
 define("port", default=12304, help="run on the given port", type=int)
-define("db_addr", default="127.0.0.1", help="db addr", type=str)
-define("db_port", default=27017, help="db port", type=int)
 
 _SYN_DB_INTERVAL = 180000
 
@@ -30,11 +28,11 @@ class Application(tornado.web.Application):
             (r"/userReq", UserReqHandler),
             (r"/cmd", CommandHandler)
         ]
-        self.record_mod = record.Record(options.db_addr, options.db_port)
+        self.record_mod = record.Record(cfg.DB_ADDR, cfg.DB_PORT)
         self.running = True
         self._kick_dict = set()     # kicked player who can't read or write record
 
-        server_log.info('record server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
+        server_log.info('record server start on db[' + cfg.DB_ADDR + ':' + str(cfg.DB_PORT) + ']')
         tornado.web.Application.__init__(self, handlers, debug=False)
 
     def in_kick(self, user_uid):
@@ -180,10 +178,9 @@ class UserReqHandler(tornado.web.RequestHandler):
         if is_valid:
             user_pf = self.get_argument('user_pf')
             user_uid = self.get_argument('user_id') + '_' + user_pf
-            dirty_id = self.get_argument('dirty_id')
-            # commit dirty record
+
             reply = self.application.record_mod.handle_req(user_uid, self.get_argument('body'))
-            reply = self.get_argument('callback') + '(' + reply + ')'
+            reply = self.get_argument('callback') + '(' + json.dumps(reply) + ')'
         else:
             '''wrong user_id or user_key'''
             reply = str(self.get_argument('callback') + '(' + "{'new account': 'invalid account'}" + ')')

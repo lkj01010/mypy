@@ -18,8 +18,6 @@ from log import server_log
 from tornado.options import define, options
 
 define("port", default=12310, help="run on the given port", type=int)
-define("db_addr", default="127.0.0.1", help="db addr", type=str)
-define("db_port", default=27017, help="db port", type=int)
 
 
 class Application(tornado.web.Application):
@@ -31,9 +29,9 @@ class Application(tornado.web.Application):
             (r"/srvStat", WriteSrvStatHandler)
         ]
 
-        server_log.info('db server start on db[' + options.db_addr + ':' + str(options.db_port) + ']')
+        server_log.info('db server start on db[' + cfg.DB_ADDR + ':' + str(cfg.DB_PORT) + ']')
 
-        conn = pymongo.MongoClient(options.db_addr, options.db_port)
+        conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
         self.db = conn['dota']
         self.db.user.create_index('user_uid')
 

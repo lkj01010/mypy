@@ -139,7 +139,7 @@ class JJC:
             info = self._player_dict[user_uid]
         else:
             # new user push to the end of rank_list
-            info = _PlayerInfo()
+            info = _PlayerInfo(None)
             info.data['user_uid'] = user_uid
             info.rank = len(self._rank_list) + 1    # last rank
             self._player_dict[user_uid] = info
@@ -181,11 +181,11 @@ class JJC:
         """ return None when not found opponent
         """
 
-        if 'user_uid' in self._player_dict:
+        if user_uid in self._player_dict:
             info = self._player_dict[user_uid]
         else:
             # new user push to the end of rank_list
-            info = _PlayerInfo()
+            info = _PlayerInfo(None)
             info.data['user_uid'] = user_uid
             info.rank = len(self._rank_list) + 1    # last rank
             self._player_dict[user_uid] = info
