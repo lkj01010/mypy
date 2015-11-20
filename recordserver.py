@@ -28,7 +28,7 @@ class Application(tornado.web.Application):
             (r"/userReq", UserReqHandler),
             (r"/cmd", CommandHandler)
         ]
-        self.record_mod = record.Record(cfg.DB_ADDR, cfg.DB_PORT)
+        self.record_mod = record.Record(cfg.DB_ADDR, cfg.DB_PORT, check_login.LoginChecker.user_zone_info_cache)
         self.running = True
         self._kick_dict = set()     # kicked player who can't read or write record
 
@@ -180,7 +180,9 @@ class UserReqHandler(tornado.web.RequestHandler):
             user_uid = self.get_argument('user_id') + '_' + user_pf
 
             reply = self.application.record_mod.handle_req(user_uid, self.get_argument('body'))
-            reply = self.get_argument('callback') + '(' + json.dumps(reply) + ')'
+            reply_str = json.dumps(reply)
+            server_log.info('req respond: ' + reply_str)
+            reply = self.get_argument('callback') + '(' + reply_str + ')'
         else:
             '''wrong user_id or user_key'''
             reply = str(self.get_argument('callback') + '(' + "{'new account': 'invalid account'}" + ')')

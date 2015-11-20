@@ -13,6 +13,9 @@ class LoginChecker(object):
 
     # !!! user has multi keys when login multi device , we cache all these keys, neither we will check them endlessly
     user_cache = dict()
+    # storage user info
+    user_zone_info_cache = dict()
+
     _CLEANUP_INTERVAL = 3600 * 1000
 
     time_task = tornado.ioloop.PeriodicCallback(_TimeHelper().clean_up, _CLEANUP_INTERVAL)
@@ -25,7 +28,10 @@ class LoginChecker(object):
     def check_info(self, user_id, user_key, zoneid, callback):
         self.check_ret_callback = callback
 
-        if cfg.cur_remote != cfg.REMOTE_WANBA:
+        # if cfg.cur_remote != cfg.REMOTE_WANBA:
+        # ---------> temp test
+        if False:
+            # ]]
             self.check_ret_callback(True)
         else:
             is_need_check = False
@@ -48,7 +54,7 @@ class LoginChecker(object):
                                                          '/?openid=' + user_id +
                                                          '&openkey=' + user_key +
                                                         '&user_pf=' + zoneid +
-                                                        '&api=k_playzone_userinfo' +
+                                                        '&api=k_userinfo' +
                                                          '&platform=qzone' +
                                                         '&callback=cb',
                                                         method='GET')
@@ -64,7 +70,7 @@ class LoginChecker(object):
 
             server_log.warn('in _check_response_callback0, user_cache len: %d' % len(LoginChecker.user_cache))
             # [[
-            if 'data'in j_body and j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
+            if j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
                 openid = j_body['openid']
                 if openid in LoginChecker.user_cache:
                     pass
@@ -73,6 +79,11 @@ class LoginChecker(object):
                     server_log.warn('in _check_response_callback1, user_cache len: %d' % len(LoginChecker.user_cache))
                 LoginChecker.user_cache[openid].add(j_body['openkey'])
                 is_valid = True
+
+                # store zone info
+                self.user_zone_info_cache[openid] = dict()
+                self.user_zone_info_cache[openid]['nickname'] = j_body['nickname']
+                self.user_zone_info_cache[openid]['figureurl'] = j_body['figureurl']
 
             # ==============> test
             # openid = j_body['openid']

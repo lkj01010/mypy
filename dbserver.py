@@ -26,7 +26,8 @@ class Application(tornado.web.Application):
             (r"/", WriteRecordToDBHandler),
             (r"/billinfo", WriteBillToDBHandler),
             (r"/recordBatch", WriteRecordBatchHandler),
-            (r"/srvStat", WriteSrvStatHandler)
+            (r"/srvStat", WriteSrvStatHandler),
+            (r"/db", WriteDBHandler),
         ]
 
         server_log.info('db server start on db[' + cfg.DB_ADDR + ':' + str(cfg.DB_PORT) + ']')
@@ -112,6 +113,29 @@ class WriteSrvStatHandler(tornado.web.RequestHandler):
             c.update(stat_dict['key'], stat_dict['value'], True, False)
         else:
             c.insert_one(stat_dict['value'])
+
+class WriteDBHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        req_str = self.request.body
+        server_log.info('request info: ' + req_str)
+        req_dict = json.JSONDecoder().decode(req_str)
+
+        db = self.application.db
+
+        c = Collection(db, req_dict['collection'])
+        if 'batch' in req_dict and type(req_dict['batch']) == list:
+            for v in req_dict['batch']:
+                if v['filter']:
+                    if v['modifier'] == 'set':
+                        c.update_one(v['filter'],
+                                     {'$set':
+                                        {v['update']['key']: v['update']['value']}
+                                      }, True)
+                    elif v['modifier'] == 'delete':
+                        c.delete_one(v['filter'])
+                else:
+                    c.insert_one(v['doc'])
+        self.write("{'ok': 1, 'msg': 'push to '" + req_dict['collection'] + "}")
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()

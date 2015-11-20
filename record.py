@@ -11,59 +11,86 @@ import random
 import copy
 import datetime
 
+from db_pusher import DataHolder, DBPusher
 import jjc
-
-
-class _DataHolder(object):
-    def __init__(self, data):
-        self.data = data
-        self.touch = 0
-        self.push = 0
-        self.active = False
 
 
 class Record(object):
 
-    _SYN_DB_INTERVAL = 10000    # 5*60*1000
-    _CLEAN_INACTIVE_RECORDS_INTERVAL = 60000    # 6*60*60*1000
-    _STAT_INTERVAL = 60000  # 10*60*1000
+    _RECORD_SYN_INTERVAL = 5 * 60 * 1000    # 5*60*1000
+    _RECORD_CLEAN_INACTIVE_INTERVAL = 30 * 60 * 1000
+    _STAT_INTERVAL = 600000  # 10*60*1000
 
-    def __init__(self, db_addr, db_port):
+    def __init__(self, db_addr, db_port, user_zone_info_cache):
+        self._user_zone_info_cache = user_zone_info_cache
+
         conn = pymongo.MongoClient(db_addr, db_port)
 
         self.db = conn['dota']
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
         self.db.user.create_index('user_uid')
+        self.db.mail.create_index('user_uid')
         self.db_client = tornado.httpclient.AsyncHTTPClient()
         """record save in"""
         self.cache = dict()
 
-        time_task = tornado.ioloop.PeriodicCallback(self.push_dirty_records_to_db, Record._SYN_DB_INTERVAL)
-        time_task.start()
+        record_db_pusher = DBPusher(self.db_client, cfg.DB_SERVER + '/recordBatch', self.cache,
+                                    Record._RECORD_SYN_INTERVAL,
+                                    Record._RECORD_CLEAN_INACTIVE_INTERVAL)
+        record_db_pusher.start()
 
-        time_task2 = tornado.ioloop.PeriodicCallback(self._clean_inactive_records,
-                                                     Record._CLEAN_INACTIVE_RECORDS_INTERVAL)
-        time_task2.start()
+        # time_task = tornado.ioloop.PeriodicCallback(self.push_dirty_records_to_db, Record._RECORD_SYN_INTERVAL)
+        # time_task.start()
+        #
+        # time_task2 = tornado.ioloop.PeriodicCallback(self._clean_inactive_records,
+        #                                              Record._RECORD_CLEAN_INACTIVE_INTERVAL)
+        # time_task2.start()
 
+
+
+        # jjc model
+        self._jjc_mod = jjc.JJC(self.db, self)
+
+        # # event handler
+        # self._event_timer = tornado.ioloop.PeriodicCallback(self._check_time_event, 5 * 1000)
+        # self._event_timer.start()
+        # self._time_events = dict()
+        # self._last_time = datetime.datetime.time()
+        # self._time_events['jjc_daily_account'] = {
+        #     'trigger': datetime.time(21, 0, 0),
+        #     'callback': self._jjc_mod.balance_rank_reward
+        # }
+
+        # stat
         self._stat_write_count = 0
         self._stat_read_count = 0
         time_task3 = tornado.ioloop.PeriodicCallback(self._stat_active_user, Record._STAT_INTERVAL)
         time_task3.start()
 
-        # jjc model
-        self._jjc_mod = jjc.JJC(self.db)
-        self._jjc_find_times = 0       # when find fail, continue to find until exceeding it
+    # def _check_time_event(self):
+    #     now = datetime.time()
+    #     for k, v in self._time_events.items():
+    #         trigger = v['trigger']
+    #         if self._last_time < trigger < now:
+    #             v['callback']()
 
     @staticmethod
-    def default_record():
-        record = {
+    def _default_record_jjc():
+        return {
+            "win": 0, "win_day": 0, "lose": 0, "lose_day": 0, "honour": 0, "honour_day": 0, "comb": 0, "grade": 1,
+            "grade_got": 0
+        }
+
+    @staticmethod
+    def _default_record():
+        return {
             "gold" : 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
             "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
-            "v_1" : 50, "v_2" : 1, "v_3" : 10, "v_8" : 0, "v_14" : 1,
+            "v_1" : 50, "v_2" : 0, "v_3" : 10, "v_8" : 0, "v_14" : 1,
             "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
-            "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 1
+            "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 1,
+            "jjc" : Record._default_record_jjc(),
         }
-        return record
 
     def get_user_data(self, user_uid):
         if user_uid in self.cache:
@@ -72,18 +99,38 @@ class Record(object):
             find_ret = self.db.user.find_one({'user_uid': user_uid}, {'_id': False, 'create_time': False})
             if find_ret:
                 reply_dict = find_ret['record']
+                Record._fill_keys(reply_dict)
             else:
                 reply_dict = dict()
                 reply_dict['user_uid'] = user_uid
-                reply_dict['record'] = Record.default_record()
+                reply_dict['record'] = Record._default_record()
                 reply_dict['record']['userno'] = self._make_userno()
                 reply_dict['create_time'] = datetime.datetime.now()
                 self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
                 server_log.warning('cache size=%d,not found, new user_uid=%s' % (len(self.cache), user_uid))
                 reply_dict = reply_dict['record']
 
-            self.cache[user_uid] = _DataHolder(reply_dict)
+            # update zone info
+            user_id = user_uid[:-2]
+            if 'zone' not in reply_dict and \
+                    user_id in self._user_zone_info_cache:
+                zone = dict()
+                zone_info = self._user_zone_info_cache[user_id]
+                zone['nickname'] = zone_info['nickname']
+                zone['figureurl'] = zone_info['figureurl']
+                reply_dict['zone'] = zone
+
+            self.cache[user_uid] = DataHolder(reply_dict)
+
             return reply_dict
+
+    @staticmethod
+    def _fill_keys(reply_dict):
+        """fill user with full keys"""
+        if 'jjc' not in reply_dict:
+            reply_dict['jjc'] = Record._default_record_jjc()
+        if 'grade_got' not in reply_dict['jjc']:
+            reply_dict['jjc']['grade_got'] = 0
 
     def get_record(self, user_uid):
         """return a record (dict type)"""
@@ -137,48 +184,48 @@ class Record(object):
         user_data_dict.update(dirty_record_dict)
         self.cache[user_uid].touch += 1
 
-    def push_dirty_records_to_db(self):
-        batch = dict()
-        for k, v in self.cache.items():
-            if v.touch > 0:
-                batch[k] = v.data
-                v.touch = 0
-                v.active = True
-                """ after 50 cleanup circle,v will release from cache """
-                if v.push < 2:  # test
-                    v.push += 1
+    # def push_dirty_records_to_db(self):
+    #     batch = dict()
+    #     for k, v in self.cache.items():
+    #         if v.touch > 0:
+    #             batch[k] = v.data
+    #             v.touch = 0
+    #             v.active = True
+    #             """ after 50 cleanup circle,v will release from cache """
+    #             if v.push < 2:  # test
+    #                 v.push += 1
+    #
+    #     # [[ test for log
+    #     logstr = str()
+    #     for k in self.cache:
+    #         logstr += '\nuser_uid=' + k + ', touch=' + str(self.cache[k].touch) + ', push=' + str(self.cache[k].push)
+    #     server_log.info('[push dirty]' + logstr)
+    #     # ]]
+    #
+    #     j_record_batch = json.JSONEncoder().encode(batch)
+    #     request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER + '/recordBatch', method='POST', body=j_record_batch)
+    #     self.db_client.fetch(request, callback=self.push_dirty_records_to_db_callback)
+    #     pass
+    #
+    # def push_dirty_records_to_db_callback(self, response):
+    #     if response.body:
+    #         pass
+    #     else:
+    #         server_log.error('push dirty records error !!!!!!!!!!!!! syn response: ' + str(response.body))
 
-        # [[ test for log
-        logstr = str()
-        for k in self.cache:
-            logstr += '\nuser_uid=' + k + ', touch=' + str(self.cache[k].touch) + ', push=' + str(self.cache[k].push)
-        server_log.info('[push dirty]' + logstr)
-        # ]]
-
-        j_record_batch = json.JSONEncoder().encode(batch)
-        request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER + '/recordBatch', method='POST', body=j_record_batch)
-        self.db_client.fetch(request, callback=self.push_dirty_records_to_db_callback)
-        pass
-
-    def push_dirty_records_to_db_callback(self, response):
-        if response.body:
-            pass
-        else:
-            server_log.error('push error !!!!!!!!!!!!! syn response: ' + str(response.body))
-
-    def _clean_inactive_records(self):
-        for k, v in self.cache.items():
-            if v.push <= 0:
-                del self.cache[k]
-            else:
-                self.cache[k].push -= 1
-
-        # [[ test for log
-        logstr = str()
-        for k in self.cache:
-            logstr += '\nuser_uid=' + k + ', touch=' + str(self.cache[k].touch) + ', push=' + str(self.cache[k].push)
-        server_log.info('[push inactive]' + logstr)
-        # ]]
+    # def _clean_inactive_records(self):
+    #     for k, v in self.cache.items():
+    #         if v.push <= 0:
+    #             del self.cache[k]
+    #         else:
+    #             self.cache[k].push -= 1
+    #
+    #     # [[ test for log
+    #     logstr = str()
+    #     for k in self.cache:
+    #         logstr += '\nuser_uid=' + k + ', touch=' + str(self.cache[k].touch) + ', push=' + str(self.cache[k].push)
+    #     server_log.info('[push inactive]' + logstr)
+    #     # ]]
 
     def _make_userno(self):
         count = self.db.user.count()
@@ -223,58 +270,53 @@ class Record(object):
             server_log.error('remove_from_cache, user_uid=' + user_uid + 'not exist.')
 
     def handle_req(self, user_uid, req):
-        try:
-            req_dict = json.JSONDecoder().decode(req)
-            cmd = req_dict['cmd']
-            if 'body' in req_dict:
-                body = req_dict['body']
-            else:
-                body = dict()
+        # try:
+        req_dict = json.JSONDecoder().decode(req)
+        cmd = req_dict['cmd']
+        if 'body' in req_dict:
+            body = req_dict['body']
+        else:
+            body = dict()
 
-            if cmd == 'jjc_ret':
-                reply_dict = self._handle_jjc_ret(user_uid, body)
-            elif cmd == 'jjc_find':
-                reply_dict = self._handle_jjc_find(user_uid, body)
-            elif cmd == 'jjc_tops':
-                reply_dict = self._handle_jjc_tops()
+        if cmd == 'get_mail':
+            reply_dict = self._handle_get_mail(user_uid)
+        elif cmd == 'jjc_ret':
+            reply_dict = self._handle_jjc_ret(user_uid, body)
+        elif cmd == 'jjc_find':
+            reply_dict = self._handle_jjc_find(user_uid, body)
+        elif cmd == 'jjc_ranks':
+            reply_dict = self._handle_jjc_ranks(user_uid)
+        elif cmd == 'jjc_grade_reward':
+            reply_dict = self._handle_jjc_grade_reward(user_uid)
 
-            reply_dict['ret'] = 1
+        reply_dict['ret'] = 1
 
-        except KeyError:
-            reply_dict = {'ret': 0}
-            server_log.error('handle_req, KeyError.')
+        # except KeyError:
+        #     reply_dict = {'ret': 0}
+        #     server_log.error('handle_req, KeyError.')
 
         return reply_dict
 
+    def _handle_get_mail(self, user_uid):
+        mail_dict = dict()
+        mail_dict['jjc_rank_reward'] = self._jjc_mod.handle_jjc_rank_reward(user_uid)
+        return mail_dict
+
     def _handle_jjc_ret(self, user_uid, body):
         # handle jjc logic
-        reply_dict = self._jjc_mod.handle_match_result(body['user_uid'], body['is_win'])
-        # then get out handled user data
-        user_info = self._jjc_mod.get_user_info(body['user_uid'])
-        # synchronous to cache
-        user_data_dict = self.get_user_data(user_uid)
-        user_data_dict.update(user_info)
-        # return the reply to client
+        reply_dict = self._jjc_mod.handle_match_result(user_uid, body['is_win'])
         return reply_dict
 
     def _handle_jjc_find(self, user_uid, body):
         user_data = self.get_user_data(user_uid)
 
-        # commit user's jjc_cfg
-        # if 'jjc_cfg' not in user_data:
-        #     user_data['jjc_cfg'] = dict()
-        user_data['jjc_cfg'] = body['jjc_cfg']
+        user_data['jjc']['jjc_cfg'] = body['jjc_cfg']
 
-        self._jjc_find_times = 0
         reply_dict = self.__do_jjc_find(user_uid)
+        server_log.info('[jjc] return str: ' + str(reply_dict))
         return reply_dict
 
     def __do_jjc_find(self, user_uid):
-        self._jjc_find_times += 1
-        if self._jjc_find_times > 3:
-            server_log.warning('[jjc] __do_jjc_find: not found for user_uid=' + user_uid)
-            return dict()
-
         opponent_uid = self._jjc_mod.handle_find_opponent(user_uid)
 
         # [[
@@ -287,18 +329,23 @@ class Record(object):
         # else:
         #     return self.__do_jjc_find(user_uid)
         # =====================>
-        reply_dict = dict()
+
         if opponent_uid:
             opponent_data = self.get_user_data(opponent_uid)
+            reply_dict = dict()
             reply_dict['name'] = opponent_uid
-            reply_dict['jjc_cfg'] = opponent_data['jjc_cfg']
+            reply_dict['jjc_cfg'] = opponent_data['jjc']['jjc_cfg']
             return reply_dict
         else:
-            return reply_dict
+            return self._jjc_mod.handle_jjc_ranks(user_uid)
         # ]]
 
-    def _handle_jjc_tops(self):
-        return self._jjc_mod.handle_get_top_players()
+    def _handle_jjc_ranks(self, user_uid):
+        return self._jjc_mod.handle_jjc_ranks(user_uid)
+
+    def _handle_jjc_grade_reward(self, user_uid):
+        reply_dict = self._jjc_mod.handle_jjc_grade_reward(user_uid)
+        return reply_dict
 
     '''-----------------------------------x--'''
 
@@ -334,7 +381,7 @@ class Record(object):
                 server_log.info('not find record of user_uid=' + user_uid + ', make default record !!!')
                 record_doc = dict()
                 record_doc['user_uid'] = user_uid
-                record_doc['record'] = Record.default_record()
+                record_doc['record'] = Record._default_record()
                 record_doc['record']['userno'] = self._make_userno()
                 self.db.user.insert(record_doc)
                 reply_dict = record_doc['record']

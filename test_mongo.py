@@ -7,22 +7,22 @@ import tornado.options
 from tornado.options import define, options
 define("opt", default="add", help="add", type=str)
 
-var = [[None for _ in range(10)] for _ in range(10)]
-
-var2 = [1 for _ in range(10)]
-
-for i, x in enumerate([1,2,3]):
-    print x
-
-for k, _ in enumerate(var):
-    print k
-
-A, B = ['a', 'b']
-
-C = 'abbccdef'
-D = b"zzz".join(C)
-
-TEST_COUNT = 1000
+# var = [[None for _ in range(10)] for _ in range(10)]
+#
+# var2 = [1 for _ in range(10)]
+#
+# for i, x in enumerate([1,2,3]):
+#     print x
+#
+# for k, _ in enumerate(var):
+#     print k
+#
+# A, B = ['a', 'b']
+#
+# C = 'abbccdef'
+# D = b"zzz".join(C)
+#
+# TEST_COUNT = 1000
 
 
 class Record(object):
@@ -77,6 +77,21 @@ class Record(object):
 if __name__ == "__main__":
     if not None:
         pass
+
+    print 10 % 4
+
+    l = [11,21,31,41,51,61,71,81]
+    for k in enumerate(l[2:6]):
+        print k
+        print k[1]
+
+    import datetime
+    now = datetime.datetime.now()
+    d = now.day
+    day = now.date()
+
+    tt = datetime.time(21,0,0)
+
 
     sss = '12345'
     sss = sss[:-1]
