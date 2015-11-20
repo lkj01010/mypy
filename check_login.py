@@ -70,7 +70,7 @@ class LoginChecker(object):
 
             server_log.warn('in _check_response_callback0, user_cache len: %d' % len(LoginChecker.user_cache))
             # [[
-            if j_body['is_ok'] == 1 and 'openid' in j_body and 'openkey' in j_body:
+            if j_body['is_ok'] == 1 and 'openid' in j_body and 'nickname' in j_body:
                 openid = j_body['openid']
                 if openid in LoginChecker.user_cache:
                     pass

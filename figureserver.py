@@ -15,44 +15,51 @@ class FigureHolder:
         self.data = None
 
 class FigureSocketHandler(tornado.websocket.WebSocketHandler):
-    clients = set()
     figure_cache = dict()
 
     def __init__(self, application, request, **kwargs):
         self._client = tornado.httpclient.AsyncHTTPClient()
+        self._user_id = ''
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
 
     def check_origin(self, origin):
         return True
-
-    @staticmethod
-    def send_to_all(message):
-        for c in FigureSocketHandler.clients:
-            c.write_message(message)
 
     def on_pong(self, data):
         """Invoked when the response to a ping frame is received."""
         pass
 
     def on_message(self, message):
-        request = tornado.httpclient.HTTPRequest(
-            'http://thirdapp3.qlogo.cn/qzopenapp/d8219673598dbd6f634b7a98010859c7e9d7b24659e5a442c94004fd58149411/50',
-            method='GET')
-        server_log.info('new active url: ' + request.url)
-        self._client.fetch(request, callback=self._cb)
+        print str(id(self)) + ' on_message'
+        msg_dict = json.JSONDecoder().decode(message)
+        self._user_id = msg_dict['user_id']
+
+        # if self._user_id in FigureSocketHandler.figure_cache:
+        # ------------> test
+        if False:
+            # ]]
+            reply = dict()
+            reply['user_id'] = self._user_id
+            reply['data'] = FigureSocketHandler.figure_cache[self._user_id]
+            reply_str = json.dumps(reply)
+            self.write_message(reply_str)
+            self.close()
+        else:
+            request = tornado.httpclient.HTTPRequest(
+                msg_dict['url'],
+                method='GET')
+            server_log.info('fetch: ' + request.url)
+            self._client.fetch(request, callback=self._cb)
 
     def _cb(self, respond):
+        """!!!!!!!!!  data64 should attach on front: 'data:image/jpeg;base64,' etc !!!!!!!!!!
+        """
         data64 = base64.b64encode(respond.body)
-        data64 += data64
-        data64 += data64
-        data64 += data64
-        data64 += data64
-        data64 += data64
-        data64 += data64
-        data64 += data64
-        data64 += data64
+
+        FigureSocketHandler.figure_cache[self._user_id] = data64
+
         reply = dict()
-        reply['user_id'] = 'lkj'
+        reply['user_id'] = self._user_id
         reply['data'] = data64
         reply_str = json.dumps(reply)
 
@@ -76,13 +83,12 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
         #     self.write_message(str(reply))
         # pass
 
+
     def open(self, *args, **kwargs):
-        FigureSocketHandler.send_to_all(str(id(self)) + ' has joined')
-        FigureSocketHandler.clients.add(self)
+        print str(id(self)) + ' open'
 
     def on_close(self):
-        FigureSocketHandler.clients.remove(self)
-        FigureSocketHandler.send_to_all(str(id(self)) + ' has left')
+        print str(id(self)) + ' on_close'
 
 if __name__ == '__main__':
     app = tornado.web.Application([
