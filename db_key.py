@@ -22,30 +22,47 @@ def default_record():
 conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
 db = conn.dota
 cursor = db.user.find({}, projection={'_id': False})
+
+class _Acc:
+    _u_count = 0
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def acc():
+        _Acc._u_count += 1
+        return _Acc._u_count
+
+_acc = _Acc()
 for doc in cursor:
     if 'user_uid' not in doc:
-        print '[db_key] error: user_uid not in'
+        print str(_acc.acc()) + '[db_key] error: user_uid not in'
         db.user.delete_one(doc)    # doc itself is a filter !!!
         continue
     user_uid = doc['user_uid']
     if 'record' not in doc:
         db.user.update_one({'user_uid': user_uid}, {'$set':{'record': default_record()}})
-        print '[db_key] : add record, user:', user_uid
+        print str(_acc.acc()) + '[db_key] : add record, user:', user_uid
         continue
 
     if  'jjc' not in doc['record']:
         db.user.update_one({'user_uid': user_uid}, {'$set':{'record.jjc': default_record_jjc()}})
-        print '[db_key] : add record.jjc, user:', user_uid
+        print str(_acc.acc()) + '[db_key] : add record.jjc, user:', user_uid
         continue
 
     if 'grade' not in doc['record']['jjc']:
         db.user.update_one({'user_uid': user_uid}, {'$set':{'record.jjc.grade': 1}})
-        print '[db_key] : add record.jjc.grade, user:', user_uid
+        print str(_acc.acc()) + '[db_key] : add record.jjc.grade, user:', user_uid
         continue
 
     if 'grade_got' not in doc['record']['jjc']:
         db.user.update_one({'user_uid': user_uid}, {'$set':{'record.jjc.grade_got': 0}})
-        print '[db_key] : add record.jjc.grade_got, user:', user_uid
+        print str(_acc.acc()) + '[db_key] : add record.jjc.grade_got, user:', user_uid
         continue
 
+    if 'zone' not in doc['record']:
+    # if 'nickname' not in doc['record']['zone']:
+        db.user.update_one({'user_uid': user_uid}, {'$set':{'record.zone': {'nickname': '', 'figureurl': ''}}})
+        print str(_acc.acc()) + '[db_key] : add record.zone, user:', user_uid
 

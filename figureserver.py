@@ -54,17 +54,22 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
     def _cb(self, respond):
         """!!!!!!!!!  data64 should attach on front: 'data:image/jpeg;base64,' etc !!!!!!!!!!
         """
-        data64 = base64.b64encode(respond.body)
+        reply = dict()
+        reply['user_id'] = self._user_id
 
-        FigureSocketHandler.figure_cache[self._user_id] = data64
+        if not respond.body:
+            data64 = ''
+        else:
+            data64 = base64.b64encode(respond.body)
+            FigureSocketHandler.figure_cache[self._user_id] = data64
 
         reply = dict()
         reply['user_id'] = self._user_id
         reply['data'] = data64
         reply_str = json.dumps(reply)
 
-        print len(data64)
-        print reply_str
+        print 'data len', len(data64)
+        # print reply_str
         self.write_message(reply_str)
         self.close()
         # total_len = len(data)
@@ -82,7 +87,6 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
         #     print str(reply)
         #     self.write_message(str(reply))
         # pass
-
 
     def open(self, *args, **kwargs):
         print str(id(self)) + ' open'

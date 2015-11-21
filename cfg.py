@@ -14,9 +14,10 @@ elif cur_remote == REMOTE_TEST:
     DB_SERVER = 'http://127.0.0.1:12310'
     RECORD_SERVER = 'http://127.0.0.1:12304'
 elif cur_remote == REMOTE_LOCAL:   # LOCAL
-    DB_ADDR = '42.62.101.24'
-    DB_SERVER = 'http://42.62.101.24:12310'
-    # DB_SERVER = 'http://127.0.0.1:12310'
+    # DB_ADDR = '42.62.101.24'
+    DB_ADDR = '192.168.1.250'
+    # DB_SERVER = 'http://42.62.101.24:12310'
+    DB_SERVER = 'http://127.0.0.1:12310'
     RECORD_SERVER = 'http://127.0.0.1:12304'
 
 DB_PORT = 27017

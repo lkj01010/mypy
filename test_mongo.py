@@ -80,6 +80,10 @@ if __name__ == "__main__":
 
     print 10 % 4
 
+    xaa = 10
+    if xaa % 2 == 0:
+        print 'ok'
+
     l = [11,21,31,41,51,61,71,81]
     for k in enumerate(l[2:6]):
         print k

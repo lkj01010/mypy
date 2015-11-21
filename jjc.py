@@ -267,13 +267,13 @@ class JJC:
         for v in self._rank_list[:30]:
             player = dict()
             player['rank'] = v.rank
-            player['name'] = v.data['user_uid']
+            player['user_uid'] = v.data['user_uid']
             player['win_day'] = v.data['win_day']
             player['lose_day'] = v.data['lose_day']
             player['honour_day'] = v.data['honour_day']
             player['grade'] = v.data['grade']
 
-            user_record = self._record_mod.get_user_data(user_uid)
+            user_record = self._record_mod.get_user_data(v.data['user_uid'])
             if 'zone' in user_record:
                 player['nickname'] = user_record['zone']['nickname']
                 player['figureurl'] = user_record['zone']['figureurl']
@@ -418,9 +418,10 @@ class JJC:
                 is_need_balance = True
             else:
                 # if self._jjc_srvinfo['TEST_last__rank_reward__time'].hour != now.hour:
-                if self._jjc_srvinfo['TEST_last__rank_reward__time'].minute % 10 == 0:
-                    server_log.info('[jjc] will do balance, last day is ' + str(self._jjc_srvinfo['last__rank_reward__time'].day) \
-                               + 'last hour is ' + str(self._jjc_srvinfo['last__rank_reward__time'].day))
+                minute = self._jjc_srvinfo['TEST_last__rank_reward__time'].minute
+                if minute % 2 == 0:
+                    server_log.info('[jjc] will do balance, last day is ' + str(self._jjc_srvinfo['TEST_last__rank_reward__time'].day) \
+                               + 'last hour is ' + str(self._jjc_srvinfo['TEST_last__rank_reward__time'].day))
                     self._jjc_srvinfo['TEST_last__rank_reward__time'] = now
                     is_need_balance = True
 

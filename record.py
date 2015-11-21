@@ -82,6 +82,12 @@ class Record(object):
         }
 
     @staticmethod
+    def _default_record_zone():
+        return {
+            "nickname": "", "figureurl": ""
+        }
+
+    @staticmethod
     def _default_record():
         return {
             "gold" : 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
@@ -90,6 +96,7 @@ class Record(object):
             "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
             "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 1,
             "jjc" : Record._default_record_jjc(),
+            "zone" : Record._default_record_zone(),
         }
 
     def get_user_data(self, user_uid):
@@ -111,14 +118,15 @@ class Record(object):
                 reply_dict = reply_dict['record']
 
             # update zone info
-            user_id = user_uid[:-2]
-            if 'zone' not in reply_dict and \
-                    user_id in self._user_zone_info_cache:
-                zone = dict()
-                zone_info = self._user_zone_info_cache[user_id]
-                zone['nickname'] = zone_info['nickname']
-                zone['figureurl'] = zone_info['figureurl']
+            if 'zone' not in reply_dict:
+                zone = dict
                 reply_dict['zone'] = zone
+
+            user_id = user_uid[:-2]
+            if user_id in self._user_zone_info_cache:
+                zone_info = self._user_zone_info_cache[user_id]
+                reply_dict['zone']['nickname'] = zone_info['nickname']
+                reply_dict['zone']['figureurl'] = zone_info['figureurl']
 
             self.cache[user_uid] = DataHolder(reply_dict)
 
