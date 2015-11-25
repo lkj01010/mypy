@@ -16,12 +16,12 @@ class DBData(dict):
 class DBDataPusher:
     """ cache item should be instance of DBData
     """
-    def __init__(self, client, url, db_collection, cache, item_gen_callback, syn_interval):
+    def __init__(self, client, url, db_collection, delegate, syn_interval):
         self._client = client
         self._url = url
         self._db_collection = db_collection
-        self._cache = cache
-        self._item_gen_callback = item_gen_callback
+        self._delegate = delegate
+        self._cache = delegate.dlg_db_cache()
         self._syn_interval = syn_interval
 
     def start(self):
@@ -31,8 +31,8 @@ class DBDataPusher:
     def _push_to_db(self):
         data_batch = list()
         for k, v in self._cache.items():
-            if v.touch >= 0:
-                item = self._item_gen_callback(k, v)
+            if v.touch > 0:
+                item = self._delegate.dlg_gen_db_cmd_item(k, v)
                 data_batch.append(item)
                 v.touch = 0
                 v.push += 1

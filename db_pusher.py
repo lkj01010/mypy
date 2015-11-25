@@ -36,7 +36,7 @@ class DBPusher:
                 v.touch = 0
                 v.active = True
                 """ after 50 cleanup circle,v will release from cache """
-                if v.push < 2:  # test
+                if v.push < 50:  # test
                     v.push += 1
 
         # [[ test for log

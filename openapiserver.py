@@ -9,13 +9,13 @@ import json
 from log import server_log
 import cfg
 from openapi import openapi_v3
-
+import time
 
 def pretty_show(jdata):
     print json.dumps(jdata, indent=4, ensure_ascii=False).encode('utf8')
 
-from tornado.options import define, options
-define("port", default=12303, help="run on the given port", type=int)
+# from tornado.options import define, options
+# define("port", default=12303, help="run on the given port", type=int)
 #######################################################################
 
 class Application(tornado.web.Application):
@@ -63,12 +63,24 @@ class Application(tornado.web.Application):
 class ApiHandler(tornado.web.RequestHandler):
 
     def get(self):
+        try:
+            openid = self.get_argument('openid')
+            openkey = self.get_argument('openkey')
+            platform = self.get_argument('platform')
+            user_pf = self.get_argument('user_pf')
+            api = self.get_argument('api')
+            callback = self.get_argument('callback')
+        except KeyError:
+            server_log.warning("except KeyError: Failed to get argument", exc_info=True)
+
         if not self.application.running:
-            self.send_error()
+            reply = callback.encode('utf8') + '(' + "{'ok': 0, 'msg': 'server is not serving.'}" + ')'
+            self.write(reply)
             return
 
-        print 'api uri:', self.request.uri
-        server_log.info('api uri:' + self.request.uri)
+        cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print '[' + cur_time + ']' + 'api uri:', self.request.uri
+
         try:
             openid = self.get_argument('openid')
             openkey = self.get_argument('openkey')
@@ -129,7 +141,7 @@ class ApiHandler(tornado.web.RequestHandler):
         else:
             reply = "{'is_ok':0, 'msg': 'invalid api'}"
 
-        print('reply: ' + reply)
+        print('[' + cur_time + ']' + 'reply: ' + reply)
         # lkj bug: how to show unicode - chinese
         reply = callback.encode('utf8') + '(' + reply + ')'
         self.write(reply)
@@ -162,5 +174,6 @@ if __name__ == "__main__":
     server_log.info('openapiserver start.')
     app = Application()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
+    http_server.listen(cfg.TENCENT_ACCOUNT_SERVER_PORT)
+    print 'server open on port:', cfg.TENCENT_ACCOUNT_SERVER_PORT
     tornado.ioloop.IOLoop.instance().start()

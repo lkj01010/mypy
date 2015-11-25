@@ -11,6 +11,7 @@ import random
 import copy
 import datetime
 
+import db_key
 from db_pusher import DataHolder, DBPusher
 import jjc
 
@@ -19,7 +20,7 @@ class Record(object):
 
     _RECORD_SYN_INTERVAL = 5 * 60 * 1000    # 5*60*1000
     _RECORD_CLEAN_INACTIVE_INTERVAL = 30 * 60 * 1000
-    _STAT_INTERVAL = 600000  # 10*60*1000
+    _STAT_INTERVAL = 15 * 60 * 1000
 
     def __init__(self, db_addr, db_port, user_zone_info_cache):
         self._user_zone_info_cache = user_zone_info_cache
@@ -74,99 +75,73 @@ class Record(object):
     #         if self._last_time < trigger < now:
     #             v['callback']()
 
-    @staticmethod
-    def _default_record_jjc():
-        return {
-            "win": 0, "win_day": 0, "lose": 0, "lose_day": 0, "honour": 0, "honour_day": 0, "comb": 0, "grade": 1,
-            "grade_got": 0
-        }
-
-    @staticmethod
-    def _default_record_zone():
-        return {
-            "nickname": "", "figureurl": ""
-        }
-
-    @staticmethod
-    def _default_record():
-        return {
-            "gold" : 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
-            "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
-            "v_1" : 50, "v_2" : 0, "v_3" : 10, "v_8" : 0, "v_14" : 1,
-            "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
-            "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 1,
-            "jjc" : Record._default_record_jjc(),
-            "zone" : Record._default_record_zone(),
-        }
-
     def get_user_data(self, user_uid):
         if user_uid in self.cache:
             return self.cache[user_uid].data
         else:
+            """fix me:
+                db synchronous operation. could do it asynchronous if it is hotpot
+            """
             find_ret = self.db.user.find_one({'user_uid': user_uid}, {'_id': False, 'create_time': False})
             if find_ret:
                 reply_dict = find_ret['record']
-                Record._fill_keys(reply_dict)
+                self.cache[user_uid] = DataHolder(reply_dict)
             else:
                 reply_dict = dict()
-                reply_dict['user_uid'] = user_uid
-                reply_dict['record'] = Record._default_record()
+                # reply_dict['user_uid'] = user_uid
+                reply_dict['record'] = db_key.default_record()
                 reply_dict['record']['userno'] = self._make_userno()
-                reply_dict['create_time'] = datetime.datetime.now()
-                self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
-                server_log.warning('cache size=%d,not found, new user_uid=%s' % (len(self.cache), user_uid))
+
+                """ AVOID TO: do db operation during server running !
+                    it may cause long synchronous delay when db is busy !
+                """
+                # self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
+
+                server_log.warning('cache size=%d, not found, new user_uid=%s' % (len(self.cache), user_uid))
                 reply_dict = reply_dict['record']
 
-            # update zone info
-            if 'zone' not in reply_dict:
-                zone = dict
-                reply_dict['zone'] = zone
-
-            user_id = user_uid[:-2]
-            if user_id in self._user_zone_info_cache:
-                zone_info = self._user_zone_info_cache[user_id]
-                reply_dict['zone']['nickname'] = zone_info['nickname']
-                reply_dict['zone']['figureurl'] = zone_info['figureurl']
-
-            self.cache[user_uid] = DataHolder(reply_dict)
+                self.cache[user_uid] = DataHolder(reply_dict)
+                self.cache[user_uid].touch += 1
 
             return reply_dict
 
-    @staticmethod
-    def _fill_keys(reply_dict):
-        """fill user with full keys"""
-        if 'jjc' not in reply_dict:
-            reply_dict['jjc'] = Record._default_record_jjc()
-        if 'grade_got' not in reply_dict['jjc']:
-            reply_dict['jjc']['grade_got'] = 0
+    def touch_user_data(self, user_uid):
+        """touch data, so it will push to db server
+        """
+        if user_uid in self.cache:
+            data_holder = self.cache[user_uid]
+            data_holder.touch += 1
+        else:
+            find_ret = self.db.user.find_one({'user_uid': user_uid}, {'_id': False, 'create_time': False})
+            if find_ret:
+                reply_dict = find_ret['record']
+                self.cache[user_uid] = DataHolder(reply_dict)
+                self.cache[user_uid].touch += 1
+            server_log.error('[record] touch user not in cache: ' + user_uid)
 
     def get_record(self, user_uid):
         """return a record (dict type)"""
         self._stat_read_count += 1
-        # if user_uid in self.cache:
-        #     reply_dict = self.cache[user_uid].data
-        #     server_log.warning("cache size=%d, in cache: user_uid=%s" % (len(self.cache), user_uid))
-        #     return reply_dict
-        # else:
-        #     find_ret = self.db.user.find_one({'user_uid': user_uid})
-        #     if find_ret:
-        #         del find_ret['_id']
-        #         if 'create_time' in find_ret:
-        #             del find_ret['create_time']
-        #         reply_dict = find_ret['record']
-        #         server_log.warning('cache size=%d,find from db user_uid=%s' % (len(self.cache), user_uid))
-        #     else:
-        #         reply_dict = dict()
-        #         reply_dict['user_uid'] = user_uid
-        #         reply_dict['record'] = Record.default_record()
-        #         reply_dict['record']['userno'] = self._make_userno()
-        #         reply_dict['create_time'] = datetime.datetime.now()
-        #         self.db.user.insert(reply_dict)     # this oper will add '_id' item !!!
-        #         server_log.warning('cache size=%d,not found, new user_uid=%s' % (len(self.cache), user_uid))
-        #         reply_dict = reply_dict['record']
-        #     self.cache[user_uid] = _DataHolder(reply_dict)
-        #     return reply_dict
-        return self.get_user_data(user_uid)
+
+        record = self.get_user_data(user_uid)
+
+        # update zone info
+        user_id = user_uid[:-2]
+        if user_id in self._user_zone_info_cache:
+            zone_info = self._user_zone_info_cache[user_id]
+            record['zone']['nickname'] = zone_info['nickname']
+            record['zone']['figureurl'] = zone_info['figureurl']
+
+        # check time logic
+        self._jjc_mod.data_check(record)
+
+        # update time
+        now = datetime.datetime.now()
+        record['month'] = now.month
+        record['day'] = now.day
+        record['hour'] = now.hour
+
+        return record
 
     def commit_record(self, user_uid, dirty_record_str):
         self._stat_write_count += 1
@@ -341,7 +316,9 @@ class Record(object):
         if opponent_uid:
             opponent_data = self.get_user_data(opponent_uid)
             reply_dict = dict()
-            reply_dict['name'] = opponent_uid
+            reply_dict['user_id'] = opponent_uid[0:-2]
+            reply_dict['nickname'] = opponent_data['zone']['nickname']
+            reply_dict['figureurl'] = opponent_data['zone']['figureurl']
             reply_dict['jjc_cfg'] = opponent_data['jjc']['jjc_cfg']
             return reply_dict
         else:

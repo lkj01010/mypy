@@ -15,7 +15,6 @@ import record
 
 from tornado.options import define, options
 
-define("port", default=12304, help="run on the given port", type=int)
 
 _SYN_DB_INTERVAL = 180000
 
@@ -73,6 +72,7 @@ class ReadRecordHandler(tornado.web.RequestHandler):
         if is_valid:
             reply_dict['code'] = 1
             user_uid = self.get_argument('user_id') + '_' + self.get_argument('user_pf')
+
             reply_dict['record'] = self.application.record_mod.get_record(user_uid)
 
             reply = str(self.get_argument('callback')) + '(' + json.dumps(reply_dict) + ')'
@@ -92,14 +92,14 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self, *args, **kwargs):
-        if self.application.running:
-            try:
-                user_id = self.get_argument('user_id')
-                user_key = self.get_argument('user_key')
-                zoneid = self.get_argument('user_pf')
-            except KeyError:
-                server_log.warning("Failed to get argument", exc_info=True)
+        try:
+            user_id = self.get_argument('user_id')
+            user_key = self.get_argument('user_key')
+            zoneid = self.get_argument('user_pf')
+        except KeyError:
+            server_log.warning("Failed to get argument", exc_info=True)
 
+        if self.application.running or user_id in cfg.test_users:
             if self.application.in_kick(user_id + '_' + zoneid):
                 # kicked player
                 self.send_error()
@@ -157,14 +157,14 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
 class UserReqHandler(tornado.web.RequestHandler):
 
     def get(self, *args, **kwargs):
-        if self.application.running:
-            try:
-                user_id = self.get_argument('user_id')
-                user_key = self.get_argument('user_key')
-                zoneid = self.get_argument('user_pf')
-            except KeyError:
-                server_log.warning("Failed to get argument", exc_info=True)
+        try:
+            user_id = self.get_argument('user_id')
+            user_key = self.get_argument('user_key')
+            zoneid = self.get_argument('user_pf')
+        except KeyError:
+            server_log.warning("Failed to get argument", exc_info=True)
 
+        if self.application.running or user_id in cfg.test_users:
             if self.application.in_kick(user_id + '_' + zoneid):
                 # kicked player
                 self.send_error()
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     app = Application()
     # app.termly_push_records_to_db()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
+    http_server.listen(cfg.RECORD_SERVER_PORT)
     tornado.ioloop.IOLoop.instance().start()
 
 

@@ -41,7 +41,7 @@ _RANK ={
       {
         "-ID": "6",
         "-RankTop": "101",
-        "-RankLast": "10000",
+        "-RankLast": "100000000",
         "-CoinReward": "250",
         "-DiamondReward": "50"
       }

@@ -67,8 +67,10 @@ class OpenAPIV3(object):
         else:
             # lkj add decode gbk   ,as data received is this format
             try:
+                print 'try else try data:', data
                 return json.loads(data)
             except UnicodeDecodeError:
+                print 'try else try UnicodeDecodeError data:', data
                 return json.loads(data.decode('gbk'))
             # ]]
         finally:

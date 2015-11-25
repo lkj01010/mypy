@@ -28,9 +28,9 @@ class LoginChecker(object):
     def check_info(self, user_id, user_key, zoneid, callback):
         self.check_ret_callback = callback
 
-        if cfg.cur_remote != cfg.REMOTE_WANBA:
+        # if cfg.cur_remote != cfg.REMOTE_WANBA:
         # ---------> temp test
-        # if False:
+        if False:
             # ]]
             self.check_ret_callback(True)
         else:

@@ -31,6 +31,9 @@ def run_cmd():
             body['cmd'] = 'unkick'
             body['param'] = dict()
             body['param']['user_uid'] = options.user_uid
+        else:
+            print 'cmd invalid.'
+            return
 
         body_json = json.JSONEncoder().encode(body)
         print 'send cmd', body_json

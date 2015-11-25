@@ -100,6 +100,13 @@ if __name__ == "__main__":
     sss = '12345'
     sss = sss[:-1]
 
+    zz1 = {'1':1}
+    zz2 = {'2':1}
+    zz3 = {'3':1}
+    dict = {'1':zz1, '2':zz2, '3':zz3}
+
+    del zz1
+
 
     import json
     collection_path = list()

@@ -20,6 +20,7 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         self._client = tornado.httpclient.AsyncHTTPClient()
         self._user_id = ''
+        self._total_size = 0
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
 
     def check_origin(self, origin):
@@ -30,13 +31,14 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
         pass
 
     def on_message(self, message):
-        print str(id(self)) + ' on_message'
         msg_dict = json.JSONDecoder().decode(message)
         self._user_id = msg_dict['user_id']
 
-        # if self._user_id in FigureSocketHandler.figure_cache:
+        print self._user_id + ' on_message'
+
+        if self._user_id in FigureSocketHandler.figure_cache:
         # ------------> test
-        if False:
+        # if False:
             # ]]
             reply = dict()
             reply['user_id'] = self._user_id
@@ -68,7 +70,8 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
         reply['data'] = data64
         reply_str = json.dumps(reply)
 
-        print 'data len', len(data64)
+        self._total_size += len(data64)
+        print 'data len:', len(data64), 'total len:', self._total_size
         # print reply_str
         self.write_message(reply_str)
         self.close()
@@ -89,14 +92,16 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
         # pass
 
     def open(self, *args, **kwargs):
-        print str(id(self)) + ' open'
+        # print str(id(self)) + ' open'
+        pass
 
     def on_close(self):
-        print str(id(self)) + ' on_close'
+        # print str(id(self)) + ' on_close'
+        pass
 
 if __name__ == '__main__':
     app = tornado.web.Application([
         ('/figure', FigureSocketHandler),
     ])
-    app.listen(8200)
+    app.listen(12309)
     tornado.ioloop.IOLoop.instance().start()

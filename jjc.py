@@ -48,10 +48,8 @@ class JJC:
     _COMB_HONOUR_6 = 30
     _TOP_PLAYER_COUNT = 30
 
-    # _RANK_REWARD__SYN_INTERVAL = 5 * 60 * 1000
     _RANK_REWARD__SYN_INTERVAL = 5 * 60 * 1000
     _BALANCE_CHECK_INTERVAL = 60 * 1000
-    _BALANCE_HOUR = 9
 
     def __init__(self, db, record_mod):
 
@@ -70,8 +68,7 @@ class JJC:
         self._rank_reward_batch = dict()
         self._load_rank_reward()
         rank_reward_pusher = DBDataPusher(self._record_mod.db_client, cfg.DB_SERVER + '/db', 'jjc.rank_reward',
-                                          self._rank_reward_batch, JJC.rank_reward_item_gen,
-                                          JJC._RANK_REWARD__SYN_INTERVAL)
+                                          self, JJC._RANK_REWARD__SYN_INTERVAL)
         rank_reward_pusher.start()
 
         self._jjc_srvinfo = self.db.srvinfo.find_one({'type': 'jjc'}, {'_id': False})
@@ -80,11 +77,11 @@ class JJC:
             self.db.srvinfo.insert_one(self._jjc_srvinfo)
 
         # [[
-        # balance_timer = tornado.ioloop.PeriodicCallback(self._check_balance_rank_reward, JJC._BALANCE_CHECK_INTERVAL)
-        # balance_timer.start()
-        # -----------------> temp test
-        balance_timer = tornado.ioloop.PeriodicCallback(self.test_check_balance_rank_reward, 1 * 60 * 1000)
+        balance_timer = tornado.ioloop.PeriodicCallback(self._check_rank_balance, JJC._BALANCE_CHECK_INTERVAL)
         balance_timer.start()
+        # -----------------> temp test
+        # balance_timer = tornado.ioloop.PeriodicCallback(self.test_check_balance_rank_reward, 3 * 60 * 1000)
+        # balance_timer.start()
         # ]]
 
         pass
@@ -155,6 +152,17 @@ class JJC:
         self._player_dict[user_uid] = info
         server_log.info("[jjc] new add user_uid=" + user_uid + ' rank=' + str(info.rank))
 
+    def data_check(self, record):
+        """clean grade each month
+        """
+        now = datetime.datetime.now()
+        if record['month'] != now.month:
+        # -------------> temp test
+        # if record['hour'] != now.hour:
+            record['jjc']['honour'] = record['jjc']['honour_day']
+            record['jjc']['grade'] = 1
+            record['jjc']['grade_got'] = 0
+
     def _update_player_in_rank(self, user_uid, is_toward_front):
         """should handle_match_result first, player must in both player_dict and rank_list
         """
@@ -202,9 +210,20 @@ class JJC:
                 self._rank_list.insert(rank_now - 1, player_info_dest)
 
         except KeyError:
-            server_log.error("[error]_update_player_in_rank, KeyError.")
+            server_log.error("[jjc]_update_player_in_rank, KeyError.")
 
-    def _get_jjc_player_info(self, user_uid):
+    def _get_player_jjc_data(self, user_uid):
+        if user_uid in self._player_dict:
+            info = self._player_dict[user_uid]
+            return info.data
+        else:
+            user_record = self._record_mod.get_user_data(user_uid)
+            jjc_data = deepcopy(user_record['jjc'])
+            if 'jjc_cfg' in jjc_data:
+                del jjc_data['jjc_cfg']
+            return jjc_data
+
+    def _get_player_jjcinfo_and_addtojjc(self, user_uid):
         if user_uid in self._player_dict:
             info = self._player_dict[user_uid]
         else:
@@ -223,10 +242,12 @@ class JJC:
     def _update_jjc_data_to_record(self, user_uid, data):
         user_record = self._record_mod.get_user_data(user_uid)
         user_record['jjc'].update(data)
-        del user_record['jjc']['user_uid']
+        if 'user_uid' in user_record['jjc']:
+            del user_record['jjc']['user_uid']
+        self._record_mod.touch_user_data(user_uid)
 
     def handle_match_result(self, user_uid, is_win):
-        info = self._get_jjc_player_info(user_uid)
+        info = self._get_player_jjcinfo_and_addtojjc(user_uid)
 
         if is_win == 1:
             is_toward_front = True
@@ -241,11 +262,13 @@ class JJC:
             else:
                 honour = JJC._COMB_HONOUR_6
         else:
-            is_toward_front = False
+            """if honour < 0 , should toward back
+            """
+            is_toward_front = True
             info.data['lose'] += 1
             info.data['lose_day'] += 1
             info.data['comb'] = 0
-            honour = 1
+            honour = 1              # > 0, toward front
 
         info.data['honour'] += honour
         info.data['honour_day'] += honour
@@ -275,25 +298,35 @@ class JJC:
 
             user_record = self._record_mod.get_user_data(v.data['user_uid'])
             if 'zone' in user_record:
-                player['nickname'] = user_record['zone']['nickname']
-                player['figureurl'] = user_record['zone']['figureurl']
+                if 'nickname' not in user_record['zone']:
+                    print 'who?'
+                else:
+                    player['nickname'] = user_record['zone']['nickname']
+                    player['figureurl'] = user_record['zone']['figureurl']
 
             reply_list.append(player)
         if user_uid in self._player_dict:
             user_rank = self._player_dict[user_uid].rank
+            data = self._player_dict[user_uid].data
+            reply_dict = {
+                'tops': reply_list,
+                'self_rank': user_rank,
+                'self_honour': data['honour'],
+                'self_honour_day': data['honour_day'],
+                'self_win': data['win'],
+                'self_lose': data['lose'],
+            }
         else:
-            # stand for not in ranks
-            user_rank = -1
-        reply_dict = {
-            'tops': reply_list,
-            'self_rank': user_rank
-        }
+            reply_dict = {
+                'tops': reply_list
+            }
+
         return reply_dict
 
     def handle_find_opponent(self, user_uid):
         """ return None when not found opponent
         """
-        info = self._get_jjc_player_info(user_uid)
+        info = self._get_player_jjcinfo_and_addtojjc(user_uid)
 
         back_count = len(self._rank_list) - info.rank
         dest_rank = JJC._make_match_seed_by_rank(info.rank, back_count, self._is_match_front)
@@ -367,61 +400,74 @@ class JJC:
     def handle_jjc_grade_reward(self, user_uid):
         # TODO: add reward in client, security issue
 
-        info = self._get_jjc_player_info(user_uid)
+        data = self._get_player_jjc_data(user_uid)
         reward = dict()
-        if info.data['grade_got'] < info.data['grade']:
-            reward_cfg = GRADE[info.data['grade_got']]
+        if data['grade_got'] < data['grade']:
+            reward_cfg = GRADE[data['grade_got']]
             reward['coin'] = reward_cfg['-CoinReward']
             reward['zuan'] = reward_cfg['-DiamondReward']
             reward['card'] = reward_cfg['-CardReward']
 
-            info.data['grade_got'] += 1
-            reward['grade_got'] = info.data['grade_got']
+            data['grade_got'] += 1
+            reward['grade_got'] = data['grade_got']
 
-            self._update_jjc_data_to_record(user_uid, info.data)
+            self._update_jjc_data_to_record(user_uid, data)
         return reward
 
     def handle_jjc_rank_reward(self, user_uid):
+        print 'REWARD-BEFORE-handle_jjc_rank_reward: \n', str(self._rank_reward_batch)
         reply_dict = dict()
         if user_uid in self._rank_reward_batch:
             reward = self._rank_reward_batch[user_uid]
-            reply_dict['coin'] = reward['coin']
-            reply_dict['zuan'] = reward['zuan']
-            reply_dict['rank'] = reward['rank']
-            del self._rank_reward_batch[user_uid]
+            if reward['coin'] > 0:
+                reply_dict['coin'] = reward['coin']
+                reply_dict['zuan'] = reward['zuan']
+                reply_dict['rank'] = reward['rank']
+
+                # del self._rank_reward_batch[user_uid]
+                """better hold all data, not del data, because there 3 places data in, add and del and syn will need more more
+                logic, more code, it is not worth
+                """
+                reward['coin'] = 0
+                reward['zuan'] = 0
+                reward.touch += 1
+                """if want to release cold data, it is hold by dbdata_pusher, must release by dbdata_pusher, not itself
+                """
+        print 'user:', user_uid, 'get reward:', str(reply_dict)
         return reply_dict
 
-    def _check_balance_rank_reward(self):
+    def _check_rank_balance(self):
         now = datetime.datetime.now()
-        is_need_balance = False
-        if 21 < now.hour:
+
+        is_need_balance_rank = False
+        if 21 == now.hour:
             if 'last__rank_reward__time' not in self._jjc_srvinfo:
                 self._jjc_srvinfo['last__rank_reward__time'] = now
-                is_need_balance = True
-            else:
-                if self._jjc_srvinfo['last__rank_reward__time'].day < now.day \
-                        or self._jjc_srvinfo['last__rank_reward__time'].month < now.month \
-                        or self._jjc_srvinfo['last__rank_reward__time'].year < now.year:
-                    server_log.info('[jjc] will do balance, last day is ' + str(self._jjc_srvinfo['last__rank_reward__time'].day))
-                    self._jjc_srvinfo['last__rank_reward__time'] = now
-                    is_need_balance = True
+                is_need_balance_rank = True
+            elif self._jjc_srvinfo['last__rank_reward__time'].day < now.day \
+                    or self._jjc_srvinfo['last__rank_reward__time'].month < now.month \
+                    or self._jjc_srvinfo['last__rank_reward__time'].year < now.year:
+                server_log.info('[jjc] will do balance, last day is ' + str(self._jjc_srvinfo['last__rank_reward__time'].day))
+                self._jjc_srvinfo['last__rank_reward__time'] = now
+                is_need_balance_rank = True
 
-        if is_need_balance:
+        if is_need_balance_rank:
             self._balance_rank_reward()
 
     def test_check_balance_rank_reward(self):
         now = datetime.datetime.now()
         is_need_balance = False
+        server_log.info('[jjc] now hour is:' + str(now.hour) + ' now minute is:' + str(now.minute))
         if 6 < now.hour:
             if 'TEST_last__rank_reward__time' not in self._jjc_srvinfo:
                 self._jjc_srvinfo['TEST_last__rank_reward__time'] = now
                 is_need_balance = True
             else:
                 # if self._jjc_srvinfo['TEST_last__rank_reward__time'].hour != now.hour:
-                minute = self._jjc_srvinfo['TEST_last__rank_reward__time'].minute
-                if minute % 2 == 0:
-                    server_log.info('[jjc] will do balance, last day is ' + str(self._jjc_srvinfo['TEST_last__rank_reward__time'].day) \
-                               + 'last hour is ' + str(self._jjc_srvinfo['TEST_last__rank_reward__time'].day))
+                minute = now.minute
+                if minute % 1 == 0:
+                    server_log.info('[jjc] will do balance, last hour is ' + str(self._jjc_srvinfo['TEST_last__rank_reward__time'].hour) \
+                               + ' last minute is ' + str(self._jjc_srvinfo['TEST_last__rank_reward__time'].minute))
                     self._jjc_srvinfo['TEST_last__rank_reward__time'] = now
                     is_need_balance = True
 
@@ -459,8 +505,12 @@ class JJC:
         self._player_dict = dict()
         self._rank_list = list()
 
-    @staticmethod
-    def rank_reward_item_gen(user_uid, reward):
+        print 'REWARD-AFTER-_balance_rank_reward: \n', str(self._rank_reward_batch)
+
+    def dlg_db_cache(self):
+        return self._rank_reward_batch
+
+    def dlg_gen_db_cmd_item(self, user_uid, reward):
         item = dict()
         item['filter'] = {'user_uid': user_uid}
         if reward['coin'] > 0 and reward['zuan'] > 0:
@@ -473,6 +523,8 @@ class JJC:
                               }
         else:
             item['modifier'] = 'delete'
+            del self._rank_reward_batch[user_uid]
+            print 'REWARD-AFTER-dlg_gen_db_cmd_item: del:', user_uid, ' \n', str(self._rank_reward_batch)
         return item
 
 
