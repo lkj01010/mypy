@@ -27,6 +27,8 @@ class Record(object):
 
         conn = pymongo.MongoClient(db_addr, db_port)
 
+        db_key.fill_keys()
+
         self.db = conn['dota']
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
         self.db.user.create_index('user_uid')
@@ -141,7 +143,31 @@ class Record(object):
         record['day'] = now.day
         record['hour'] = now.hour
 
-        return record
+        # month card
+        if record['srv']['smcard'] != 0:
+            smcard_deadline = datetime.datetime.strptime(record['srv']['smcard'], "%Y-%m-%d-%H-%M")
+            if smcard_deadline > now:
+                record['smcardleft'] = (smcard_deadline - now).days + 1
+            else:
+                record['smcardleft'] = 0
+        else:
+            record['smcardleft'] = 0
+
+        if record['srv']['gmcard'] != 0:
+            gmcard_deadline = datetime.datetime.strptime(record['srv']['gmcard'], "%Y-%m-%d-%H-%M")
+            if gmcard_deadline > now:
+                record['gmcardleft'] = (gmcard_deadline - now).days + 1
+            else:
+                record['gmcardleft'] = 0
+        else:
+            record['gmcardleft'] = 0
+
+
+        # rm srv data
+        reply_dict = copy.deepcopy(record)
+        del reply_dict['srv']
+
+        return reply_dict
 
     def commit_record(self, user_uid, dirty_record_str):
         self._stat_write_count += 1
@@ -271,7 +297,8 @@ class Record(object):
             reply_dict = self._handle_jjc_ranks(user_uid)
         elif cmd == 'jjc_grade_reward':
             reply_dict = self._handle_jjc_grade_reward(user_uid)
-
+        elif cmd == 'buy_mcard':
+            reply_dict = self._handle_buy_mcard(user_uid, body)
         reply_dict['ret'] = 1
 
         # except KeyError:
@@ -332,75 +359,92 @@ class Record(object):
         reply_dict = self._jjc_mod.handle_jjc_grade_reward(user_uid)
         return reply_dict
 
+    def _handle_buy_mcard(self, user_uid, body):
+        user_data = self.get_user_data(user_uid)
+        deadline = datetime.datetime.now() + datetime.timedelta(days=30)
+        deadline = deadline.replace(hour=0, minute=0, second=0)
+        if body['type'] == 1:
+            key = 'gmcard'
+            user_data['gmcardleft'] = 30
+        else:
+            key = 'smcard'
+            user_data['smcardleft'] = 30
+        user_data['srv'][key] = deadline.strftime("%Y-%m-%d-%H-%M")
+        self.cache[user_uid].touch += 1
+
+        reply_dict = dict()
+        reply_dict['type'] = key
+        reply_dict['leftday'] = 30
+        return reply_dict
     '''-----------------------------------x--'''
 
-    def get_record__old(self, user_uid):
-        # server_log.info('get record. user_uid=' + user_uid)
-        # if user_uid not in self.cache:
-        #     server_log.info('not in cache')
-
-            find_ret = self.db.user.find_one({'user_uid': user_uid})
-
-            if find_ret:
-                server_log.info('db find')
-                del find_ret['_id']
-                reply_dict = dict()
-                if 'record' in find_ret and type(find_ret['record']) is dict:
-                    # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
-                    reply_dict = find_ret['record']
-
-                """attach unpushed record item to Record(old) from db"""
-                if user_uid in self.batch_on_pushing:
-                    server_log.warning('attach record_on_pushing: ' + user_uid +
-                                    ', record: ' + str(self.batch_on_pushing[user_uid]))
-                    reply_dict.update(self.batch_on_pushing[user_uid])
-                if user_uid in self.batch:
-                    server_log.info('attach record_batch: ' + user_uid +
-                                    ', record: ' + str(self.batch[user_uid]))
-                    reply_dict.update(self.batch[user_uid])
-
-                """add unique number id"""
-                if 'userno' not in reply_dict:
-                    reply_dict['userno'] = self._make_userno()
-            else:
-                server_log.info('not find record of user_uid=' + user_uid + ', make default record !!!')
-                record_doc = dict()
-                record_doc['user_uid'] = user_uid
-                record_doc['record'] = Record._default_record()
-                record_doc['record']['userno'] = self._make_userno()
-                self.db.user.insert(record_doc)
-                reply_dict = record_doc['record']
-
-            return reply_dict
-
-    def commit_dirty_record__old(self, user_uid, dirty_record_str):
-        dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
-
-        if user_uid not in self.batch:
-            server_log.error('new dict')
-            self.batch[user_uid] = dict()
-
-        self.batch[user_uid].update(dirty_record_dict)
-
-        if user_uid in self.batch_on_pushing:
-            self.batch_on_pushing[user_uid].update(dirty_record_dict)
-
-    def push_records_to_db(self):
-        j_record_batch = json.JSONEncoder().encode(self.batch)
-        # server_log.error('push batch: ' + j_record_batch)
-        request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
-        self.db_client.fetch(request, callback=self.push_records_to_db_callback)
-
-        self.batch_on_pushing = copy.deepcopy(self.batch)
-        self.batch.clear()
-
-    def push_records_to_db_callback(self, response):
-        if response.body:
-            self.batch_on_pushing.clear()
-            # server_log.info('syn response: ' + str(response.body))
-        else:
-            # TODO : error handle: 备份没有提交的 on_push 到现有的 batch 上
-            self.batch_on_pushing.update(self.batch)
-            self.batch = copy.deepcopy(self.batch_on_pushing)
-            self.batch_on_pushing.clear()
-            server_log.info('push error !!!!!!!!!!!!! syn response: ' + str(response.body))
+    # def get_record__old(self, user_uid):
+    #     # server_log.info('get record. user_uid=' + user_uid)
+    #     # if user_uid not in self.cache:
+    #     #     server_log.info('not in cache')
+    #
+    #         find_ret = self.db.user.find_one({'user_uid': user_uid})
+    #
+    #         if find_ret:
+    #             server_log.info('db find')
+    #             del find_ret['_id']
+    #             reply_dict = dict()
+    #             if 'record' in find_ret and type(find_ret['record']) is dict:
+    #                 # reply_dict = dict((key.encode('ascii'), value) for key, value in find_ret['record'].items())
+    #                 reply_dict = find_ret['record']
+    #
+    #             """attach unpushed record item to Record(old) from db"""
+    #             if user_uid in self.batch_on_pushing:
+    #                 server_log.warning('attach record_on_pushing: ' + user_uid +
+    #                                 ', record: ' + str(self.batch_on_pushing[user_uid]))
+    #                 reply_dict.update(self.batch_on_pushing[user_uid])
+    #             if user_uid in self.batch:
+    #                 server_log.info('attach record_batch: ' + user_uid +
+    #                                 ', record: ' + str(self.batch[user_uid]))
+    #                 reply_dict.update(self.batch[user_uid])
+    #
+    #             """add unique number id"""
+    #             if 'userno' not in reply_dict:
+    #                 reply_dict['userno'] = self._make_userno()
+    #         else:
+    #             server_log.info('not find record of user_uid=' + user_uid + ', make default record !!!')
+    #             record_doc = dict()
+    #             record_doc['user_uid'] = user_uid
+    #             record_doc['record'] = Record._default_record()
+    #             record_doc['record']['userno'] = self._make_userno()
+    #             self.db.user.insert(record_doc)
+    #             reply_dict = record_doc['record']
+    #
+    #         return reply_dict
+    #
+    # def commit_dirty_record__old(self, user_uid, dirty_record_str):
+    #     dirty_record_dict = json.JSONDecoder().decode(dirty_record_str)
+    #
+    #     if user_uid not in self.batch:
+    #         server_log.error('new dict')
+    #         self.batch[user_uid] = dict()
+    #
+    #     self.batch[user_uid].update(dirty_record_dict)
+    #
+    #     if user_uid in self.batch_on_pushing:
+    #         self.batch_on_pushing[user_uid].update(dirty_record_dict)
+    #
+    # def push_records_to_db(self):
+    #     j_record_batch = json.JSONEncoder().encode(self.batch)
+    #     # server_log.error('push batch: ' + j_record_batch)
+    #     request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER, method='POST', body=j_record_batch)
+    #     self.db_client.fetch(request, callback=self.push_records_to_db_callback)
+    #
+    #     self.batch_on_pushing = copy.deepcopy(self.batch)
+    #     self.batch.clear()
+    #
+    # def push_records_to_db_callback(self, response):
+    #     if response.body:
+    #         self.batch_on_pushing.clear()
+    #         # server_log.info('syn response: ' + str(response.body))
+    #     else:
+    #         # TODO : error handle: 备份没有提交的 on_push 到现有的 batch 上
+    #         self.batch_on_pushing.update(self.batch)
+    #         self.batch = copy.deepcopy(self.batch_on_pushing)
+    #         self.batch_on_pushing.clear()
+    #         server_log.info('push error !!!!!!!!!!!!! syn response: ' + str(response.body))

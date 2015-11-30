@@ -63,20 +63,20 @@ class Application(tornado.web.Application):
 class ApiHandler(tornado.web.RequestHandler):
 
     def get(self):
-        try:
-            openid = self.get_argument('openid')
-            openkey = self.get_argument('openkey')
-            platform = self.get_argument('platform')
-            user_pf = self.get_argument('user_pf')
-            api = self.get_argument('api')
-            callback = self.get_argument('callback')
-        except KeyError:
-            server_log.warning("except KeyError: Failed to get argument", exc_info=True)
-
-        if not self.application.running:
-            reply = callback.encode('utf8') + '(' + "{'ok': 0, 'msg': 'server is not serving.'}" + ')'
-            self.write(reply)
-            return
+        # try:
+        #     openid = self.get_argument('openid')
+        #     openkey = self.get_argument('openkey')
+        #     platform = self.get_argument('platform')
+        #     user_pf = self.get_argument('user_pf')
+        #     api = self.get_argument('api')
+        #     callback = self.get_argument('callback')
+        # except KeyError:
+        #     server_log.warning("except KeyError: Failed to get argument", exc_info=True)
+        #
+        # if not self.application.running:
+        #     reply = callback.encode('utf8') + '(' + "{'ok': 0, 'msg': 'server is not serving.'}" + ')'
+        #     self.write(reply)
+        #     return
 
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         print '[' + cur_time + ']' + 'api uri:', self.request.uri

@@ -43,7 +43,7 @@ class Application(tornado.web.Application):
         """temp"""
         # self._set_state_msg()
 
-        self.server_notice_msg = "亲爱的玩吧用户：<br/>    《天天刀塔》全新竞技场上线了！马上邀请你的小伙伴一起战斗吧！<br/>更新内容：<br/>1.调整部分兵种技能<br/>2.调整竞技场玩法规则<br/>3.新增竞技场排行、每日排行奖励<br/>4.新增军衔系统、军衔奖励<br/>QQ群组：223105490<br/>客服QQ：800111767"
+        self.server_notice_msg = "【更新公告】<br/>《天天刀塔》等你来战！加入qq群专业客服为您解答各种疑惑！还可以同战友交流！<br/>更新内容：<br/>1.更新月卡及许愿池功能，详见游戏内“商城”及“许愿”界面<br/>2.新增“英雄礼包”，酒馆中新增“英雄征召”功能<br/>3.优化竞技场排名奖励、连胜荣誉奖励及购买次数<br/>4.调整首充礼包价格及内容，调整7日签到内容<br/>5.调整卡牌升级经验<br/>qq群组：223105490	     客服QQ：800111767"
         self.server_state_msg = self.server_notice_msg
 
         tornado.web.Application.__init__(self, handlers, debug=True)

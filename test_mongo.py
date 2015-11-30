@@ -4,6 +4,8 @@ import time
 
 import tornado.options
 
+import datetime
+
 from tornado.options import define, options
 define("opt", default="add", help="add", type=str)
 
@@ -78,6 +80,16 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    deadline = datetime.datetime.now() + datetime.timedelta(days=30)
+    print deadline
+    deadline2 = deadline.replace(hour=0, minute=0, second=0)
+    print deadline2
+    x = deadline - deadline2
+    if deadline > deadline2:
+        print x.days
+
+    strdd = deadline.strftime("%Y-%m-%d-%H-%M")
+    xxx = datetime.datetime.strptime(strdd, "%Y-%m-%d-%H-%M")
     print 10 % 4
 
     xaa = 10
@@ -89,7 +101,6 @@ if __name__ == "__main__":
         print k
         print k[1]
 
-    import datetime
     now = datetime.datetime.now()
     d = now.day
     day = now.date()

@@ -26,6 +26,7 @@ class _PlayerInfo:
                          'lose': 0,
                          'lose_day': 0,
                          'comb': 0,
+                         'combmax': 0,
                          'grade': 0,
                          'grade_got': 0}
             server_log.error('[jjc error] should not gen user data there.')
@@ -44,8 +45,10 @@ class _PlayerInfo:
 class JJC:
 
     _COMB_HONOUR_1 = 10
-    _COMB_HONOUR_3 = 20
-    _COMB_HONOUR_6 = 30
+    _COMB_HONOUR_3 = 11
+    _COMB_HONOUR_6 = 12
+    _COMB_HONOUR_9 = 13
+    _LOSE_HONOUR = 5
     _TOP_PLAYER_COUNT = 30
 
     _RANK_REWARD__SYN_INTERVAL = 5 * 60 * 1000
@@ -80,7 +83,7 @@ class JJC:
         balance_timer = tornado.ioloop.PeriodicCallback(self._check_rank_balance, JJC._BALANCE_CHECK_INTERVAL)
         balance_timer.start()
         # -----------------> temp test
-        # balance_timer = tornado.ioloop.PeriodicCallback(self.test_check_balance_rank_reward, 3 * 60 * 1000)
+        # balance_timer = tornado.ioloop.PeriodicCallback(self.test_check_balance_rank_reward, 1 * 60 * 1000)
         # balance_timer.start()
         # ]]
 
@@ -117,6 +120,7 @@ class JJC:
                 data['honour'] = doc['record']['jjc']['honour']
                 data['honour_day'] = doc['record']['jjc']['honour_day']
                 data['comb'] = doc['record']['jjc']['comb']
+                data['combmax'] = doc['record']['jjc']['combmax']
                 data['grade'] = doc['record']['jjc']['grade']
                 data['grade_got'] = doc['record']['jjc']['grade_got']
 
@@ -254,13 +258,17 @@ class JJC:
             info.data['win'] += 1
             info.data['win_day'] += 1
             info.data['comb'] += 1
+            if info.data['comb'] > info.data['combmax']:
+                info.data['combmax'] = info.data['comb']
 
-            if info.data['comb'] <= 2:
+            if info.data['comb'] < 3:
                 honour = JJC._COMB_HONOUR_1
             elif info.data['comb'] < 6:
                 honour = JJC._COMB_HONOUR_3
-            else:
+            elif info.data['comb'] < 9:
                 honour = JJC._COMB_HONOUR_6
+            else:
+                honour = JJC._COMB_HONOUR_9
         else:
             """if honour < 0 , should toward back
             """
@@ -268,7 +276,7 @@ class JJC:
             info.data['lose'] += 1
             info.data['lose_day'] += 1
             info.data['comb'] = 0
-            honour = 1              # > 0, toward front
+            honour = JJC._LOSE_HONOUR              # > 0, toward front
 
         info.data['honour'] += honour
         info.data['honour_day'] += honour
@@ -294,6 +302,8 @@ class JJC:
             player['win_day'] = v.data['win_day']
             player['lose_day'] = v.data['lose_day']
             player['honour_day'] = v.data['honour_day']
+            player['comb'] = v.data['comb']
+            player['combmax'] = v.data['combmax']
             player['grade'] = v.data['grade']
 
             user_record = self._record_mod.get_user_data(v.data['user_uid'])
@@ -315,6 +325,8 @@ class JJC:
                 'self_honour_day': data['honour_day'],
                 'self_win': data['win'],
                 'self_lose': data['lose'],
+                'self_comb': data['comb'],
+                'self_combmax' : data['combmax'],
             }
         else:
             reply_dict = {
@@ -499,6 +511,8 @@ class JJC:
             info.data['win_day'] = 0
             info.data['lose_day'] = 0
             info.data['honour_day'] = 0
+            info.data['comb'] = 0
+            info.data['combmax'] = 0
             self._update_jjc_data_to_record(user_uid, info.data)
 
         # clean rankings

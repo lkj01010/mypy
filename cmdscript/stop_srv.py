@@ -1,19 +1,19 @@
 # -*- coding: UTF-8 -*-
 import httplib
 import urllib
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/' + '..')
-import cfg
+# import os
+# import sys
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/' + '..')
+# import cfg
 import json
 
 http_client = None
 try:
-    http_client = httplib.HTTPConnection('127.0.0.1', cfg.STAT_SERVER_PORT, timeout=30)
+    http_client = httplib.HTTPConnection('127.0.0.1', 12305, timeout=30)
 
     body = dict()
     body['type'] = 0
-    body['msg'] = "服务器正在维护，预计22:10恢复正常，给您带来不便，深表歉意"
+    body['msg'] = "服务器17:10-18:30进行维护，给您带来不便，深表歉意"
     body_json = json.JSONEncoder().encode(body)
     print 'send cmd: ', body_json
 
