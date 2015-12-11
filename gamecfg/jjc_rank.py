@@ -14,14 +14,14 @@ _RANK ={
         "-ID": "2",
         "-RankTop": "2",
         "-RankLast": "2",
-        "-CoinReward": "8000",
+        "-CoinReward": "9000",
         "-DiamondReward": "700"
       },
       {
         "-ID": "3",
         "-RankTop": "3",
         "-RankLast": "3",
-        "-CoinReward": "7500",
+        "-CoinReward": "8000",
         "-DiamondReward": "650"
       },
       {

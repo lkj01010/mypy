@@ -4,7 +4,7 @@ REMOTE_TEST = 1
 REMOTE_LOCAL = 2
 REMOTE_HOME = 3
 
-cur_remote = REMOTE_WANBA
+cur_remote = REMOTE_TEST
 
 if cur_remote == REMOTE_WANBA:
     DB_ADDR = '127.0.0.1'
@@ -23,8 +23,8 @@ elif cur_remote == REMOTE_TEST:
 elif cur_remote == REMOTE_LOCAL:
     DB_ADDR = '42.62.101.24'
     # DB_ADDR = '192.168.1.250'
-    # DB_SERVER = 'http://42.62.101.24:12310'
-    DB_SERVER = 'http://127.0.0.1:12310'
+    DB_SERVER = 'http://42.62.101.24:12310'
+    # DB_SERVER = 'http://127.0.0.1:12310'
     RECORD_SERVER = 'http://127.0.0.1:12304'
     TENCENT_ACCOUNT_SERVER = 'http://203.195.243.33:12303'
     TENCENT_ACCOUNT_SERVER_PORT = 12303
@@ -39,6 +39,34 @@ elif cur_remote == REMOTE_HOME:
 DB_PORT = 27017
 RECORD_SERVER_PORT = 12304
 STAT_SERVER_PORT = 12305
+
+srvinfo = {
+    "list": [
+        {
+            "id": 1,
+            "name": "刀塔一区",
+            "tag": "",
+            "tencent": "http://203.195.243.33:12303",
+            "record": "http://42.62.101.24:12304",
+            "gate": "http://42.62.101.24:12305",
+            "figure": "ws://42.62.101.24:12309/figure"
+        },
+
+        {
+            "id": 2,
+            "name": "刀塔二区",
+            "tag": "hot",
+            "tencent": "http://203.195.243.33:12303",
+            "record": "http://42.62.101.24:12304",
+            "gate": "http://42.62.101.24:12305",
+            "figure": "ws://42.62.101.24:12309/figure"
+        },
+    ],
+
+    "recommend": 2
+}
+
+
 
 
 ''' ----------------------
@@ -62,4 +90,8 @@ test_users = {
 '''
 ''' NOTE python
 1. OrderedDict only remember the order occur in 'init' or 'setitem'(push to the end)
+'''
+
+'''NOTE game design
+1. in user data, data on srv and data send to user should all save in cache (now only data to user is save)
 '''

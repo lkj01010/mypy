@@ -76,8 +76,8 @@ class ReadRecordHandler(tornado.web.RequestHandler):
             reply_dict['record'] = self.application.record_mod.get_record(user_uid)
 
             reply = str(self.get_argument('callback')) + '(' + json.dumps(reply_dict) + ')'
+            server_log.warning('read: ' + reply)
             self.write(reply)      # this function will add '//' to words, overwrite reply !!!
-            server_log.info('read: ' + reply)
         else:
             '''wrong user_id or user_key'''
             reply_dict['code'] = 1
@@ -116,6 +116,7 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
             dirty_id = self.get_argument('dirty_id')
             # commit dirty record
             self.application.record_mod.commit_record(user_uid, self.get_argument('dirty_record'))
+            server_log.warning("commit_record: --user_uid=" + user_uid + ' --record=' + self.get_argument('dirty_record'))
             replay = self.get_argument('callback') + '({' + \
                 "'dirty_id':" + dirty_id + ',' + \
                 "'msg': 'push ok'" + \
@@ -181,7 +182,6 @@ class UserReqHandler(tornado.web.RequestHandler):
 
             reply = self.application.record_mod.handle_req(user_uid, self.get_argument('body'))
             reply_str = json.dumps(reply)
-            server_log.info('req respond: ' + reply_str)
             reply = self.get_argument('callback') + '(' + reply_str + ')'
         else:
             '''wrong user_id or user_key'''

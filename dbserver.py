@@ -74,8 +74,8 @@ class WriteRecordBatchHandler(tornado.web.RequestHandler):
         for user_id, record_dict in batch_dict.items():
             doc = dict()
             doc['user_uid'] = user_id
-            doc['modify_time'] = datetime.datetime.now()
             doc['record'] = record_dict
+            # doc['record.modify_time'] = datetime.datetime.now()
             server_log.info('db write this: user_uid:' + user_id + '\ndoc: ' + str(doc))
             result = self.application.db.user.replace_one({'user_uid': user_id}, doc, True)
             print str(result)

@@ -13,7 +13,7 @@ try:
 
     body = dict()
     body['type'] = 0
-    body['msg'] = "服务器17:10-18:30进行维护，给您带来不便，深表歉意"
+    body['msg'] = "服务器16:25-16:35进行维护，给您带来不便，深表歉意"
     body_json = json.JSONEncoder().encode(body)
     print 'send cmd: ', body_json
 

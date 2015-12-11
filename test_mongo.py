@@ -80,6 +80,15 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    equip = list()
+
+    for i in range(1, 6):
+        item = dict()
+        item['qua'] = 1
+        item['gem'] = ['', '', '', '', '', '']
+
+        equip.append(item)
+
     deadline = datetime.datetime.now() + datetime.timedelta(days=30)
     print deadline
     deadline2 = deadline.replace(hour=0, minute=0, second=0)

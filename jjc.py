@@ -156,7 +156,7 @@ class JJC:
         self._player_dict[user_uid] = info
         server_log.info("[jjc] new add user_uid=" + user_uid + ' rank=' + str(info.rank))
 
-    def data_check(self, record):
+    def data_check(self, user_uid, record):
         """clean grade each month
         """
         now = datetime.datetime.now()
@@ -166,6 +166,12 @@ class JJC:
             record['jjc']['honour'] = record['jjc']['honour_day']
             record['jjc']['grade'] = 1
             record['jjc']['grade_got'] = 0
+
+            if user_uid in self._player_dict:
+                player_info = self._player_dict[user_uid]
+                player_info.data['honour'] = record['jjc']['honour']
+                player_info.data['grade'] = 1
+                player_info.data['grade_got'] = 0
 
     def _update_player_in_rank(self, user_uid, is_toward_front):
         """should handle_match_result first, player must in both player_dict and rank_list

@@ -135,7 +135,7 @@ class Record(object):
             record['zone']['figureurl'] = zone_info['figureurl']
 
         # check time logic
-        self._jjc_mod.data_check(record)
+        self._jjc_mod.data_check(user_uid, record)
 
         # update time
         now = datetime.datetime.now()
@@ -162,10 +162,14 @@ class Record(object):
         else:
             record['gmcardleft'] = 0
 
+        # offline second -> for guaji
+        record['offlinesec'] = (now - datetime.datetime.strptime(
+            record['modify_time'], "%Y-%m-%d-%H-%M")).total_seconds()
 
         # rm srv data
         reply_dict = copy.deepcopy(record)
         del reply_dict['srv']
+        del reply_dict['modify_time']
 
         return reply_dict
 
@@ -191,6 +195,7 @@ class Record(object):
         #         server_log.error('error: commit record, but user not found!!!')
         user_data_dict = self.get_user_data(user_uid)
         user_data_dict.update(dirty_record_dict)
+        user_data_dict['modify_time'] = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
         self.cache[user_uid].touch += 1
 
     # def push_dirty_records_to_db(self):
@@ -347,6 +352,7 @@ class Record(object):
             reply_dict['nickname'] = opponent_data['zone']['nickname']
             reply_dict['figureurl'] = opponent_data['zone']['figureurl']
             reply_dict['jjc_cfg'] = opponent_data['jjc']['jjc_cfg']
+            reply_dict['r_exp'] = opponent_data['r_exp']
             return reply_dict
         else:
             return self._jjc_mod.handle_jjc_ranks(user_uid)

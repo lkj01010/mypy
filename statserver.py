@@ -88,7 +88,12 @@ class QuerySrvStateHandler(tornado.web.RequestHandler):
         callback = self.get_argument('callback')
 
         if self.application.server_running or self.get_argument('openid') in cfg.test_users:
-            reply = "{'state':1,'msg':'" + self.application.server_state_msg + "'}"
+            reply_dict = dict()
+            reply_dict['state'] = 1
+            reply_dict['msg'] = self.application.server_state_msg
+            reply_dict['srvinfo'] = cfg.srvinfo
+            reply = json.JSONEncoder().encode(reply_dict)
+            # reply = "{'state':1,'msg':'" + self.application.server_state_msg + "'}"
         else:
             reply = "{'state':0,'msg':'" + self.application.server_state_msg + "'}"
         reply = callback.encode('utf8') + '(' + reply + ')'
