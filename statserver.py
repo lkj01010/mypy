@@ -14,7 +14,7 @@ from log import server_log
 
 from tornado.options import define, options
 
-define("port", default=12305, help="run on the given port", type=int)
+define("rt", default='', help="reomote type", type=str)
 
 
 class Application(tornado.web.Application):
@@ -25,12 +25,13 @@ class Application(tornado.web.Application):
             (r"/writeStat", WriteStatToDBHandler),
             (r"/querySrvState", QuerySrvStateHandler),
             (r"/cmd", CommandHandler),
+            (r"/rec", RecordSrvHandler),
         ]
-        server_log.info('stat server start on port: ' + str(options.port) +
-                        ' db[' + cfg.DB_ADDR + ':' + str(cfg.DB_PORT) + ']')
+        server_log.info('stat server start on port: ' + str(cfg.srvcfg['port_stat']) +
+                        ' db[' + cfg.srvcfg['ip_mongodb'] + ':' + str(cfg.srvcfg['port_mongodb']) + ']')
 
-        conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
-        self.db = conn['dota']
+        conn = pymongo.MongoClient(cfg.srvcfg['ip_mongodb'], cfg.srvcfg['port_mongodb'])
+        self.db = conn[cfg.srvcfg['dbname_mongodb']]
         self.db.stat.create_index('user_uid')
         server_log.info('connect server OK')
 
@@ -41,10 +42,12 @@ class Application(tornado.web.Application):
         self.server_state_msg = ""
 
         """temp"""
-        # self._set_state_msg()
-
         self.server_notice_msg = "【更新公告】<br/>《天天刀塔》等你来战！加入qq群专业客服为您解答各种疑惑！还可以同战友交流！<br/>更新内容：<br/>1.更新月卡及许愿池功能，详见游戏内“商城”及“许愿”界面<br/>2.新增“英雄礼包”，酒馆中新增“英雄征召”功能<br/>3.优化竞技场排名奖励、连胜荣誉奖励及购买次数<br/>4.调整首充礼包价格及内容，调整7日签到内容<br/>5.调整卡牌升级经验<br/>qq群组：223105490	     客服QQ：800111767"
         self.server_state_msg = self.server_notice_msg
+
+        """last access"""
+        self.db.lastaccess.create_index('user_uid')
+        self.last_access_cache = dict()
 
         tornado.web.Application.__init__(self, handlers, debug=True)
 
@@ -88,15 +91,29 @@ class QuerySrvStateHandler(tornado.web.RequestHandler):
         callback = self.get_argument('callback')
 
         if self.application.server_running or self.get_argument('openid') in cfg.test_users:
+            region_id = cfg.srvinfo['recommend']
+            try:
+                """get last access region info from cache or db, if has not, set recommend region"""
+                user_uid = self.get_argument('openid') + '_' + self.get_argument('user_pf')
+                if user_uid in self.application.last_access_cache:
+                    region_id = self.application.last_access_cache[user_uid]
+                else:
+                    findret = self.application.db.lastaccess.find_one({'user_uid': user_uid})
+                    if findret:
+                        region_id = findret['region_id']
+            except KeyError:
+                pass
+
             reply_dict = dict()
             reply_dict['state'] = 1
             reply_dict['msg'] = self.application.server_state_msg
             reply_dict['srvinfo'] = cfg.srvinfo
+            reply_dict['region_id'] = region_id
             reply = json.JSONEncoder().encode(reply_dict)
-            # reply = "{'state':1,'msg':'" + self.application.server_state_msg + "'}"
         else:
             reply = "{'state':0,'msg':'" + self.application.server_state_msg + "'}"
         reply = callback.encode('utf8') + '(' + reply + ')'
+        server_log.info(reply)
         self.write(reply)
 
 class CommandHandler(tornado.web.RequestHandler):
@@ -110,7 +127,7 @@ class CommandHandler(tornado.web.RequestHandler):
         if self.request.remote_ip == '127.0.0.1':
             command = self.get_argument('cmd')
             cmd_dict = json.JSONDecoder().decode(command)
-            server_log.warn( 'cmd is: ' + str(cmd_dict))
+            server_log.warn('cmd is: ' + str(cmd_dict))
             try:
                 if cmd_dict["type"] == 0:
                     self.application.server_state_msg = cmd_dict["msg"]
@@ -120,10 +137,10 @@ class CommandHandler(tornado.web.RequestHandler):
                     self.application.server_running = True
 
                 """存档服务器"""
-                request = tornado.httpclient.HTTPRequest(cfg.RECORD_SERVER + '/cmd', method='POST', body=command)
+                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_record'] + '/cmd', method='POST', body=command)
                 self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
                 """openapi服务器"""
-                request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER + '/cmd', method='POST',
+                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_tencent'] + '/cmd', method='POST',
                                                          body=command)
                 self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
 
@@ -140,7 +157,7 @@ class CommandHandler(tornado.web.RequestHandler):
         try:
             if command_dict["dest"] == 'record':
                 """存档服务器"""
-                request = tornado.httpclient.HTTPRequest(cfg.RECORD_SERVER + '/cmd', method='POST',
+                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_record'] + '/cmd', method='POST',
                                                          body=command_dict['body'])
                 self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
 
@@ -151,9 +168,29 @@ class CommandHandler(tornado.web.RequestHandler):
     def cmd_callback(response):
         print 'cmd callback msg: ', response.body
 
+class RecordSrvHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        body = self.request.body
+        bodydict = json.JSONDecoder().decode(body)
+        try:
+            if bodydict["type"] == 'last_access':
+                user_uid = bodydict['body']['user_uid']
+                region_id = bodydict['body']['region_id']
+                if user_uid not in self.application.last_access_cache or \
+                        region_id != self.application.last_access_cache[user_uid]:
+                    self.application.last_access_cache[user_uid] = region_id
+                    self.application.db.lastaccess.update({'user_uid': user_uid}, {'$set': {
+                        'region_id': region_id
+                    }}, True, False)
+
+        except KeyError:
+                self.write("{'ok': 0, 'msg': 'RecordSrvHandler exception occur'}")
+
+
 if __name__ == "__main__":
     tornado.options.parse_command_line()
+    cfg.setup_srvcfg(options.rt)
     app = Application()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
+    http_server.listen(cfg.srvcfg['port_stat'])
     tornado.ioloop.IOLoop.instance().start()

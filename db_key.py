@@ -54,12 +54,9 @@ def default_record():
         'zxtimes': default_record_zhixian_times(),
         'bone': 111110, 'flakes': 111110, 'xlstone': 111110, 'dcoin': 100000,
         'r_equip_attr': default_record_equip_attr(),
-        'srv_region': cfg.srvinfo.recommend,
     }
 
-conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
-db = conn.dota
-cursor = db.user.find({}, projection={'_id': False})
+
 
 class _Acc:
     _u_count = 0
@@ -73,6 +70,10 @@ class _Acc:
         return _Acc._u_count
 
 def fill_keys():
+    conn = pymongo.MongoClient(cfg.srvcfg['ip_mongodb'], cfg.srvcfg['port_mongodb'])
+    db = conn.dota
+    cursor = db.user.find({}, projection={'_id': False})
+
     _acc = _Acc()
     now = datetime.datetime.now()
     print '[db_key] do key filling ...'
@@ -189,8 +190,8 @@ def fill_keys():
             db.user.update_one({'user_uid': user_uid}, {'$set': {'record.r_equip_attr': default_record_equip_attr()}})
             print str(_acc.acc()) + '[db_key] : add record.r_equip_attr:', user_uid
 
-        if 'srv_region' not in doc['record']:
-            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.srv_region': 1}})
-            print str(_acc.acc()) + '[db_key] : add record.srv_region:', user_uid
+        if 'srv_region' in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$unset': {'record.srv_region': True}})
+            print str(_acc.acc()) + '[db_key] : remove record.srv_region:', user_uid
 
     print '[db_key] key filling finished.'

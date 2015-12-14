@@ -11,6 +11,10 @@ import cfg
 from openapi import openapi_v3
 import time
 
+from tornado.options import define, options
+
+define("rt", default='', help="remote type", type=str)
+
 def pretty_show(jdata):
     print json.dumps(jdata, indent=4, ensure_ascii=False).encode('utf8')
 
@@ -52,7 +56,7 @@ class Application(tornado.web.Application):
             bill_dict['data'][0]['itemid'] = itemid
             data_str = json.JSONEncoder().encode(bill_dict['data'][0])
             # bill_str = json.dumps(bill_dict, indent=4, ensure_ascii=False).encode('utf8')
-            request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER + '/billinfo',
+            request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_db'] + '/billinfo',
                                                         method='POST', body=data_str)
             self.notify_client.fetch(request, callback=Application.push_billinfo_to_db_callback)
 
@@ -172,8 +176,10 @@ class CommandHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
     server_log.info('openapiserver start.')
+    tornado.options.parse_command_line()
+    cfg.setup_srvcfg(options.rt)
     app = Application()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(cfg.TENCENT_ACCOUNT_SERVER_PORT)
-    print 'server open on port:', cfg.TENCENT_ACCOUNT_SERVER_PORT
+    http_server.listen(cfg.srvcfg['port_tencent'])
+    print 'server open on port:', cfg.srvcfg['port_tencent']
     tornado.ioloop.IOLoop.instance().start()

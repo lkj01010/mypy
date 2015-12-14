@@ -9,6 +9,12 @@ from log import server_log
 import base64
 import json
 
+import cfg
+
+from tornado.options import define, options
+
+define("rt", default='', help="remote type", type=str)
+
 class FigureHolder:
     def __init__(self):
         self.touch = 0
@@ -100,8 +106,10 @@ class FigureSocketHandler(tornado.websocket.WebSocketHandler):
         pass
 
 if __name__ == '__main__':
+    tornado.options.parse_command_line()
+    cfg.setup_srvcfg(options.rt)
     app = tornado.web.Application([
         ('/figure', FigureSocketHandler),
     ])
-    app.listen(12309)
+    app.listen(cfg.srvcfg['port_figure'])
     tornado.ioloop.IOLoop.instance().start()

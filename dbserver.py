@@ -17,8 +17,7 @@ from log import server_log
 
 from tornado.options import define, options
 
-define("port", default=12310, help="run on the given port", type=int)
-
+define("rt", default='', help="remote type", type=str)
 
 class Application(tornado.web.Application):
     def __init__(self):
@@ -30,10 +29,10 @@ class Application(tornado.web.Application):
             (r"/db", WriteDBHandler),
         ]
 
-        server_log.info('db server start on db[' + cfg.DB_ADDR + ':' + str(cfg.DB_PORT) + ']')
+        server_log.info('db server start on db[' + cfg.srvcfg['ip_mongodb'] + ':' + str(cfg.srvcfg['port_mongodb']) + ']')
 
-        conn = pymongo.MongoClient(cfg.DB_ADDR, cfg.DB_PORT)
-        self.db = conn['dota']
+        conn = pymongo.MongoClient(cfg.srvcfg['ip_mongodb'], cfg.srvcfg['port_mongodb'])
+        self.db = conn[cfg.srvcfg['dbname_mongodb']]
         self.db.user.create_index('user_uid')
 
         self.db.bill.create_index('billno')
@@ -139,7 +138,8 @@ class WriteDBHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
+    cfg.setup_srvcfg(options.rt)
     app = Application()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
+    http_server.listen(cfg.srvcfg['port_db'])
     tornado.ioloop.IOLoop.instance().start()

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import cfg
+
 import tornado.httpclient
 import tornado.ioloop
 
@@ -11,6 +11,7 @@ import random
 import copy
 import datetime
 
+import cfg
 import db_key
 from db_pusher import DataHolder, DBPusher
 import jjc
@@ -22,10 +23,10 @@ class Record(object):
     _RECORD_CLEAN_INACTIVE_INTERVAL = 30 * 60 * 1000
     _STAT_INTERVAL = 15 * 60 * 1000
 
-    def __init__(self, db_addr, db_port, user_zone_info_cache):
+    def __init__(self, user_zone_info_cache):
         self._user_zone_info_cache = user_zone_info_cache
 
-        conn = pymongo.MongoClient(db_addr, db_port)
+        conn = pymongo.MongoClient(cfg.srvcfg['ip_mongodb'], cfg.srvcfg['port_mongodb'])
 
         db_key.fill_keys()
 
@@ -37,7 +38,7 @@ class Record(object):
         """record save in"""
         self.cache = dict()
 
-        record_db_pusher = DBPusher(self.db_client, cfg.DB_SERVER + '/recordBatch', self.cache,
+        record_db_pusher = DBPusher(self.db_client, cfg.srvcfg['addr_db'] + '/recordBatch', self.cache,
                                     Record._RECORD_SYN_INTERVAL,
                                     Record._RECORD_CLEAN_INACTIVE_INTERVAL)
         record_db_pusher.start()
@@ -171,6 +172,17 @@ class Record(object):
         del reply_dict['srv']
         del reply_dict['modify_time']
 
+        # send access info to gate srv
+        access_dict = dict()
+        access_dict['type'] = 'last_access'
+        access_dict['body'] = {
+            'user_uid': user_uid,
+            'region_id': cfg.remote_type
+        }
+        j_stat = json.JSONEncoder().encode(access_dict)
+        request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_stat'] + '/rec', method='POST', body=j_stat)
+        self.db_client.fetch(request, callback=self._do_nothing)
+
         return reply_dict
 
     def commit_record(self, user_uid, dirty_record_str):
@@ -268,7 +280,7 @@ class Record(object):
         stat_dict['value'] = info
 
         j_stat = json.JSONEncoder().encode(stat_dict)
-        request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER + '/srvStat', method='POST', body=j_stat)
+        request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_db'] + '/srvStat', method='POST', body=j_stat)
         self.db_client.fetch(request, callback=self._do_nothing)
 
         self._stat_read_count = 0

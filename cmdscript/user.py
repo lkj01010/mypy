@@ -13,14 +13,16 @@ import json
 from tornado.options import define, options
 
 
+define("rt", default='', help="rt: remote_type which region", type=str)
 define("cmd", default='', help="cmd: kick who, unkick who", type=str)
 define("user_uid", default='', help="user_uid", type=str)
 
+cfg.setup_srvcfg(options.rt)
 
 def run_cmd():
     http_client = None
     try:
-        http_client = httplib.HTTPConnection('localhost', cfg.RECORD_SERVER_PORT, timeout=30)
+        http_client = httplib.HTTPConnection('localhost', cfg.srvcfg['addr_record'], timeout=30)
 
         body = dict()
         if options.cmd == 'kick':

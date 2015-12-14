@@ -70,7 +70,7 @@ class JJC:
 
         self._rank_reward_batch = dict()
         self._load_rank_reward()
-        rank_reward_pusher = DBDataPusher(self._record_mod.db_client, cfg.DB_SERVER + '/db', 'jjc.rank_reward',
+        rank_reward_pusher = DBDataPusher(self._record_mod.db_client, cfg.srvcfg['addr_db'] + '/db', 'jjc.rank_reward',
                                           self, JJC._RANK_REWARD__SYN_INTERVAL)
         rank_reward_pusher.start()
 

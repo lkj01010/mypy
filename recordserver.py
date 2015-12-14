@@ -15,9 +15,9 @@ import record
 
 from tornado.options import define, options
 
+define("rt", default='', help="reomote type", type=str)
 
 _SYN_DB_INTERVAL = 180000
-
 
 class Application(tornado.web.Application):
     def __init__(self):
@@ -27,11 +27,12 @@ class Application(tornado.web.Application):
             (r"/userReq", UserReqHandler),
             (r"/cmd", CommandHandler)
         ]
-        self.record_mod = record.Record(cfg.DB_ADDR, cfg.DB_PORT, check_login.LoginChecker.user_zone_info_cache)
+        server_log.info('record server start on port: ' + str(cfg.srvcfg['port_record']))
+        self.record_mod = record.Record(check_login.LoginChecker.user_zone_info_cache)
         self.running = True
         self._kick_dict = set()     # kicked player who can't read or write record
 
-        server_log.info('record server start on db[' + cfg.DB_ADDR + ':' + str(cfg.DB_PORT) + ']')
+        server_log.info('record server start on db[' + cfg.srvcfg['ip_mongodb'] + ':' + str(cfg.srvcfg['port_mongodb']) + ']')
         tornado.web.Application.__init__(self, handlers, debug=False)
 
     def in_kick(self, user_uid):
@@ -80,7 +81,7 @@ class ReadRecordHandler(tornado.web.RequestHandler):
             self.write(reply)      # this function will add '//' to words, overwrite reply !!!
         else:
             '''wrong user_id or user_key'''
-            reply_dict['code'] = 1
+            reply_dict['code'] = 0
             reply = str(self.get_argument('callback')) + '(' + "{'code':0, 'msg':'invid userid'}" + ')'
             self.write(reply)
 
@@ -230,10 +231,11 @@ class CommandHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
+    cfg.setup_srvcfg(options.rt)
     app = Application()
     # app.termly_push_records_to_db()
     http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(cfg.RECORD_SERVER_PORT)
+    http_server.listen(cfg.srvcfg['port_record'])
     tornado.ioloop.IOLoop.instance().start()
 
 

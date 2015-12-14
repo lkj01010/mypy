@@ -50,7 +50,7 @@ class LoginChecker(object):
             if is_need_check:
                 server_log.info('need check_info, user_id = ' + user_id + 'user_key = ' + user_key)
                 '''should check from tencent server'''
-                request = tornado.httpclient.HTTPRequest(cfg.TENCENT_ACCOUNT_SERVER +
+                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_tencent'] +
                                                          '/?openid=' + user_id +
                                                          '&openkey=' + user_key +
                                                         '&user_pf=' + zoneid +
