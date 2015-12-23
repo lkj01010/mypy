@@ -17,8 +17,9 @@ def default_record_jjc():
         }
 
 def default_record_srv():
+    """lastConsume:last time string consume star"""
     return {
-        'gmcard': 0, 'smcard': 0,
+        'gmcard': 0, 'smcard': 0, 'lastConsumeDay': '',
     }
 
 def default_record_equip_quality():
@@ -28,19 +29,20 @@ def default_record_equip_star():
     return [0, 0, 0, 0, 0, 0]
 
 def default_record_zhixian_times():
-    return [0, 0, 0, 0, 0, 0, ]
+    return [0, 0, 0, 0, 0, 0]
 
 def default_record_equip_attr():
     return [[], [], [], [], [], []]
 
+"""v_-1:0 stand for new record"""
 def default_record():
     return {
         "srv": default_record_srv(),
-        "gold" : 5000+999999, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
+        "gold": 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
         "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
         "v_1" : 50, "v_2" : 0, "v_3" : 10, "v_8" : 0, "v_14" : 1,
         "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
-        "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 1,
+        "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 0,
         "v_24": 0, "v_25": 0, "v_31": 0, "v_41": 0,
         "day": now.day, "month": now.month, "hour": now.hour,
         "jjc" : default_record_jjc(),
@@ -52,11 +54,11 @@ def default_record():
         'r_equip_quality': default_record_equip_quality(),
         'r_equip_star': default_record_equip_star(),
         'zxtimes': default_record_zhixian_times(),
-        'bone': 111110, 'flakes': 111110, 'xlstone': 111110, 'dcoin': 100000,
+        'bone': 0, 'flakes': 0, 'xlstone': 0, 'dcoin': 0,
         'r_equip_attr': default_record_equip_attr(),
+        'td_buyStoneTimes': 0,
+        'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
     }
-
-
 
 class _Acc:
     _u_count = 0
@@ -71,7 +73,7 @@ class _Acc:
 
 def fill_keys():
     conn = pymongo.MongoClient(cfg.srvcfg['ip_mongodb'], cfg.srvcfg['port_mongodb'])
-    db = conn.dota
+    db = conn[cfg.srvcfg['dbname_mongodb']]
     cursor = db.user.find({}, projection={'_id': False})
 
     _acc = _Acc()
@@ -170,6 +172,10 @@ def fill_keys():
             db.user.update_one({'user_uid': user_uid}, {'$set': {'record.r_equip_star': default_record_equip_star()}})
             print str(_acc.acc()) + '[db_key] : add record.r_equip_star:', user_uid
 
+        if 'zxtimes' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.zxtimes': default_record_zhixian_times()}})
+            print str(_acc.acc()) + '[db_key] : add record.zxtimes:', user_uid
+
         if 'bone' not in doc['record']:
             db.user.update_one({'user_uid': user_uid}, {'$set': {'record.bone': 0}})
             print str(_acc.acc()) + '[db_key] : add record.bone:', user_uid
@@ -193,5 +199,29 @@ def fill_keys():
         if 'srv_region' in doc['record']:
             db.user.update_one({'user_uid': user_uid}, {'$unset': {'record.srv_region': True}})
             print str(_acc.acc()) + '[db_key] : remove record.srv_region:', user_uid
+
+        if 'td_buyStoneTimes' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.td_buyStoneTimes': 0}})
+            print str(_acc.acc()) + '[db_key] : remove record.td_buyStoneTimes:', user_uid
+
+        if 'lastConsumeDay' not in doc['record']['srv']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.srv.lastConsumeDay': ''}})
+            print str(_acc.acc()) + '[db_key] : add record.srv.lastConsumeDay:', user_uid
+
+        if 'acc_pay' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.acc_pay': 0}})
+            print str(_acc.acc()) + '[db_key] : add record.acc_pay:', user_uid
+
+        if 'continue_pay' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.continue_pay': 0}})
+            print str(_acc.acc()) + '[db_key] : add record.continue_pay:', user_uid
+
+        if 'acc_pay_get' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.acc_pay_get': []}})
+            print str(_acc.acc()) + '[db_key] : add record.acc_pay_get:', user_uid
+
+        if 'continue_pay_get' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.continue_pay_get': []}})
+            print str(_acc.acc()) + '[db_key] : add record.continue_pay_get:', user_uid
 
     print '[db_key] key filling finished.'

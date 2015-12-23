@@ -79,21 +79,10 @@ class Record(object):
 if __name__ == "__main__":
     if not None:
         pass
-
-    SRV_LIST = list()
-    SRV_LIST[11] = {
-        'DB_ADDR': '203.195.243.33',
-        'DB_NAME': 'dota',
-        'TENCENT_ACCOUNT_SERVER': 'http://203.195.243.33:12000',
-        'TENCENT_ACCOUNT_SERVER_PORT': 12000,
-        'FIGURE_SERVER': 'ws://203.195.243.33:12001/figure',
-        'FIGURE_SERVER_PORT': 12001,
-        'STAT_SERVER': 'http://203.195.243.33:12011',
-        'RECORD_SERVER': 'http://203.195.243.33:12012',
-        'DB_SERVER': 'http://203.195.243.33:12013',
-        'STAT_SERVER_PORT': 12011,
-        'RECORD_SERVER_PORT': 12012,
-    }
+    todaystr = datetime.datetime.today().strftime('%Y-%m-%d')
+    today = datetime.date.today()
+    todaystring = today.strftime('%Y-%m-%d')
+    print datetime.datetime.now()
 
     equip = list()
 

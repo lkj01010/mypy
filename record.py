@@ -30,7 +30,7 @@ class Record(object):
 
         db_key.fill_keys()
 
-        self.db = conn['dota']
+        self.db = conn[cfg.srvcfg['dbname_mongodb']]
         # self.db.user.drop_index('_id') #  drop '_id' is invalid
         self.db.user.create_index('user_uid')
         self.db.mail.create_index('user_uid')
@@ -49,8 +49,6 @@ class Record(object):
         # time_task2 = tornado.ioloop.PeriodicCallback(self._clean_inactive_records,
         #                                              Record._RECORD_CLEAN_INACTIVE_INTERVAL)
         # time_task2.start()
-
-
 
         # jjc model
         self._jjc_mod = jjc.JJC(self.db, self)
@@ -127,6 +125,10 @@ class Record(object):
         self._stat_read_count += 1
 
         record = self.get_user_data(user_uid)
+
+        """new player"""
+        if record['v_-1'] == 0:
+            record['v_-1'] = 1
 
         # update zone info
         user_id = user_uid[:-2]
@@ -206,52 +208,14 @@ class Record(object):
         #     else:
         #         server_log.error('error: commit record, but user not found!!!')
         user_data_dict = self.get_user_data(user_uid)
-        user_data_dict.update(dirty_record_dict)
-        user_data_dict['modify_time'] = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
-        self.cache[user_uid].touch += 1
-
-    # def push_dirty_records_to_db(self):
-    #     batch = dict()
-    #     for k, v in self.cache.items():
-    #         if v.touch > 0:
-    #             batch[k] = v.data
-    #             v.touch = 0
-    #             v.active = True
-    #             """ after 50 cleanup circle,v will release from cache """
-    #             if v.push < 2:  # test
-    #                 v.push += 1
-    #
-    #     # [[ test for log
-    #     logstr = str()
-    #     for k in self.cache:
-    #         logstr += '\nuser_uid=' + k + ', touch=' + str(self.cache[k].touch) + ', push=' + str(self.cache[k].push)
-    #     server_log.info('[push dirty]' + logstr)
-    #     # ]]
-    #
-    #     j_record_batch = json.JSONEncoder().encode(batch)
-    #     request = tornado.httpclient.HTTPRequest(cfg.DB_SERVER + '/recordBatch', method='POST', body=j_record_batch)
-    #     self.db_client.fetch(request, callback=self.push_dirty_records_to_db_callback)
-    #     pass
-    #
-    # def push_dirty_records_to_db_callback(self, response):
-    #     if response.body:
-    #         pass
-    #     else:
-    #         server_log.error('push dirty records error !!!!!!!!!!!!! syn response: ' + str(response.body))
-
-    # def _clean_inactive_records(self):
-    #     for k, v in self.cache.items():
-    #         if v.push <= 0:
-    #             del self.cache[k]
-    #         else:
-    #             self.cache[k].push -= 1
-    #
-    #     # [[ test for log
-    #     logstr = str()
-    #     for k in self.cache:
-    #         logstr += '\nuser_uid=' + k + ', touch=' + str(self.cache[k].touch) + ', push=' + str(self.cache[k].push)
-    #     server_log.info('[push inactive]' + logstr)
-    #     # ]]
+        if user_data_dict['v_-1'] == 0:
+            server_log.error('error: commit record, user not exist!!!')
+            return False
+        else:
+            user_data_dict.update(dirty_record_dict)
+            user_data_dict['modify_time'] = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
+            self.cache[user_uid].touch += 1
+            return True
 
     def _make_userno(self):
         count = self.db.user.count()
@@ -316,6 +280,10 @@ class Record(object):
             reply_dict = self._handle_jjc_grade_reward(user_uid)
         elif cmd == 'buy_mcard':
             reply_dict = self._handle_buy_mcard(user_uid, body)
+        elif cmd == 'acc_pay':
+            reply_dict = self._handle_acc_pay(user_uid, body)
+        elif cmd == 'reset_continue_pay':
+            reply_dict = self._handle_reset_continue_pay(user_uid)
         reply_dict['ret'] = 1
 
         # except KeyError:
@@ -394,6 +362,53 @@ class Record(object):
         reply_dict['type'] = key
         reply_dict['leftday'] = 30
         return reply_dict
+
+    def _handle_acc_pay(self, user_uid, body):
+        self.cache[user_uid].touch += 1
+        user_data = self.get_user_data(user_uid)
+
+        '''累积充值'''
+        user_data['acc_pay'] += body['amount']
+
+        '''日连续充值'''
+        lastday_str = user_data['srv']['lastConsumeDay']
+        today = datetime.datetime.today()
+        today_str = today.strftime('%Y-%m-%d')
+        yesterday = today + datetime.timedelta(days=-1)
+        yesterday_str = yesterday.strftime('%Y-%m-%d')
+
+        server_log.info('_handle_acc_pay, lastday_str=' + lastday_str + ', yesterday_str=' +
+                        yesterday_str)
+
+        if lastday_str == '':
+            user_data['continue_pay'] = 1
+            user_data['srv']['lastConsumeDay'] = today_str
+        elif lastday_str == today_str:
+            pass
+        elif lastday_str == yesterday_str:
+            user_data['continue_pay'] += 1
+            user_data['srv']['lastConsumeDay'] = today_str
+        else:
+            user_data['continue_pay'] = 0
+            user_data['srv']['lastConsumeDay'] = today_str
+
+        reply_dict = dict()
+        reply_dict['acc_pay'] = user_data['acc_pay']
+        reply_dict['continue_pay'] = user_data['continue_pay']
+        return reply_dict
+
+    def _handle_reset_continue_pay(self, user_uid):
+        '''没办法，充值奖励客户端服务器功能要一天写完，只能这样了。奖励重置的其他部分在客户端'''
+        self.cache[user_uid].touch += 1
+        user_data = self.get_user_data(user_uid)
+
+        user_data['continue_pay'] = 1
+        today = datetime.datetime.today()
+        today_str = today.strftime('%Y-%m-%d')
+        user_data['srv']['lastConsumeDay'] = today_str
+
+        return dict()
+
     '''-----------------------------------x--'''
 
     # def get_record__old(self, user_uid):

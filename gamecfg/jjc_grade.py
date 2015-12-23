@@ -8,7 +8,7 @@ _GRADE ={
         "-Name": "斥候",
         "-HonorMin": "0",
         "-HonorMax": "495",
-        "-CoinReward": "1000",
+        "-CoinReward": "400",
         "-DiamondReward": "50",
         "-CardReward": "1#1#2"
       },
@@ -17,7 +17,7 @@ _GRADE ={
         "-Name": "士兵",
         "-HonorMin": "496",
         "-HonorMax": "1535",
-        "-CoinReward": "1500",
+        "-CoinReward": "800",
         "-DiamondReward": "100",
         "-CardReward": "2#2#2"
       },
@@ -26,7 +26,7 @@ _GRADE ={
         "-Name": "中士",
         "-HonorMin": "1536",
         "-HonorMax": "3095",
-        "-CoinReward": "2000",
+        "-CoinReward": "1200",
         "-DiamondReward": "150",
         "-CardReward": "102#2#1"
       },
@@ -35,7 +35,7 @@ _GRADE ={
         "-Name": "高阶军士",
         "-HonorMin": "3096",
         "-HonorMax": "5695",
-        "-CoinReward": "2500",
+        "-CoinReward": "1600",
         "-DiamondReward": "200",
         "-CardReward": "3#3#2"
       },
@@ -44,7 +44,7 @@ _GRADE ={
         "-Name": "士官长",
         "-HonorMin": "5696",
         "-HonorMax": "9335",
-        "-CoinReward": "3000",
+        "-CoinReward": "2000",
         "-DiamondReward": "250",
         "-CardReward": "4#3#2"
       },
@@ -53,7 +53,7 @@ _GRADE ={
         "-Name": "石头守卫",
         "-HonorMin": "9336",
         "-HonorMax": "14535",
-        "-CoinReward": "3500",
+        "-CoinReward": "2400",
         "-DiamondReward": "300",
         "-CardReward": "5#3#2"
       },
@@ -62,7 +62,7 @@ _GRADE ={
         "-Name": "血卫士",
         "-HonorMin": "14536",
         "-HonorMax": "29095",
-        "-CoinReward": "4000",
+        "-CoinReward": "2800",
         "-DiamondReward": "350",
         "-CardReward": "8#3#2"
       },
@@ -71,7 +71,7 @@ _GRADE ={
         "-Name": "皇家卫士",
         "-HonorMin": "29096",
         "-HonorMax": "43655",
-        "-CoinReward": "4500",
+        "-CoinReward": "3200",
         "-DiamondReward": "400",
         "-CardReward": "101#3#1"
       },
@@ -80,7 +80,7 @@ _GRADE ={
         "-Name": "百夫长",
         "-HonorMin": "43656",
         "-HonorMax": "58215",
-        "-CoinReward": "5000",
+        "-CoinReward": "3600",
         "-DiamondReward": "450",
         "-CardReward": "7#4#1"
       },
@@ -89,7 +89,7 @@ _GRADE ={
         "-Name": "勇士",
         "-HonorMin": "58216",
         "-HonorMax": "87335",
-        "-CoinReward": "5500",
+        "-CoinReward": "4000",
         "-DiamondReward": "500",
         "-CardReward": "6#4#1"
       },
@@ -98,7 +98,7 @@ _GRADE ={
         "-Name": "中将",
         "-HonorMin": "87336",
         "-HonorMax": "116455",
-        "-CoinReward": "6000",
+        "-CoinReward": "4400",
         "-DiamondReward": "550",
         "-CardReward": "9#4#1"
       },
@@ -107,7 +107,7 @@ _GRADE ={
         "-Name": "将军",
         "-HonorMin": "116456",
         "-HonorMax": "145575",
-        "-CoinReward": "6500",
+        "-CoinReward": "4800",
         "-DiamondReward": "600",
         "-CardReward": "10#4#1"
       },
@@ -116,7 +116,7 @@ _GRADE ={
         "-Name": "督军",
         "-HonorMin": "145576",
         "-HonorMax": "174695",
-        "-CoinReward": "7000",
+        "-CoinReward": "5200",
         "-DiamondReward": "650",
         "-CardReward": "103#4#1"
       },
@@ -125,7 +125,7 @@ _GRADE ={
         "-Name": "高阶督军",
         "-HonorMin": "174696",
         "-HonorMax": "203815",
-        "-CoinReward": "7500",
+        "-CoinReward": "5600",
         "-DiamondReward": "700",
         "-CardReward": "104#4#1"
       }

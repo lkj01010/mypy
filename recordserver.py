@@ -25,7 +25,7 @@ class Application(tornado.web.Application):
             (r"/writeDirtyRecord", WriteDirtyRecordHandler),
             (r"/readRecord", ReadRecordHandler),
             (r"/userReq", UserReqHandler),
-            (r"/cmd", CommandHandler)
+            (r"/cmd", CommandHandler),
         ]
         server_log.info('record server start on port: ' + str(cfg.srvcfg['port_record']))
         self.record_mod = record.Record(check_login.LoginChecker.user_zone_info_cache)
@@ -116,17 +116,22 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
             user_uid = self.get_argument('user_id') + '_' + user_pf
             dirty_id = self.get_argument('dirty_id')
             # commit dirty record
-            self.application.record_mod.commit_record(user_uid, self.get_argument('dirty_record'))
-            server_log.warning("commit_record: --user_uid=" + user_uid + ' --record=' + self.get_argument('dirty_record'))
-            replay = self.get_argument('callback') + '({' + \
-                "'dirty_id':" + dirty_id + ',' + \
-                "'msg': 'push ok'" + \
-                '})'
+            ret = self.application.record_mod.commit_record(user_uid, self.get_argument('dirty_record'))
+            if ret:
+                server_log.warning("commit_record: --user_uid=" + user_uid + ' --record=' + self.get_argument('dirty_record'))
+                replay = self.get_argument('callback') + '({' + \
+                    "'dirty_id':" + dirty_id + ',' + \
+                    "'msg': 'push ok'" + \
+                    '})'
+                self.write(replay)
+                self.finish()
+            else:
+                self.send_error()
         else:
             '''wrong user_id or user_key'''
             replay = str(self.get_argument('callback') + '(' + "{'new account': 'invalid account'}" + ')')
-        self.write(replay)
-        self.finish()
+            self.write(replay)
+            self.finish()
 
     def _test_get(self):
         coll = self.application.db.user
@@ -228,6 +233,7 @@ class CommandHandler(tornado.web.RequestHandler):
 
         except KeyError:
             self.write("{'ok': 0, 'msg': 'exception occur'}")
+
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()

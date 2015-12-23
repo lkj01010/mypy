@@ -17,12 +17,11 @@ define("rt", default='', help="rt: remote_type which region", type=str)
 define("cmd", default='', help="cmd: kick who, unkick who", type=str)
 define("user_uid", default='', help="user_uid", type=str)
 
-cfg.setup_srvcfg(options.rt)
 
 def run_cmd():
     http_client = None
     try:
-        http_client = httplib.HTTPConnection('localhost', cfg.srvcfg['addr_record'], timeout=30)
+        http_client = httplib.HTTPConnection('localhost', cfg.srvcfg['port_record'], timeout=30)
 
         body = dict()
         if options.cmd == 'kick':
@@ -53,4 +52,5 @@ def run_cmd():
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
+    cfg.setup_srvcfg(options.rt)
     run_cmd()

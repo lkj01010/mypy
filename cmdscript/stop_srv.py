@@ -9,11 +9,11 @@ import json
 
 http_client = None
 try:
-    http_client = httplib.HTTPConnection('127.0.0.1', 12305, timeout=30)
+    http_client = httplib.HTTPConnection('127.0.0.1', 12001, timeout=30)
 
     body = dict()
     body['type'] = 0
-    body['msg'] = "服务器16:25-16:35进行维护，给您带来不便，深表歉意"
+    body['msg'] = "服务器21:15-22:30进行维护，给您带来不便，深表歉意"
     body_json = json.JSONEncoder().encode(body)
     print 'send cmd: ', body_json
 

@@ -240,7 +240,10 @@ def addr_figure(rt):
 
 """mongodb"""
 def ip_mongodb(rt):
-    return _IPs[rt]
+    if rt == RT_W1 or rt == RT_W2 or rt == RT_W3:
+        return "127.0.0.1"
+    else:
+        return _IPs[rt]
 def port_mongodb():
     return 27017
 def dbname_mongodb(rt):
@@ -313,16 +316,24 @@ srvinfo = {
             "figure": addr_figure(RT_T3)
         },
 
-        {
-            "id": RT_W1,
-            "name": "刀塔正式一区(冷)",
-            "tencent": addr_tencent(),
-            "record": addr_record(RT_W1),
-            "figure": addr_figure(RT_W1)
-        },
+        # {
+        #     "id": RT_W1,
+        #     "name": "封测区",
+        #     "tencent": addr_tencent(),
+        #     "record": addr_record(RT_W1),
+        #     "figure": addr_figure(RT_W1)
+        # },
+        #
+        # {
+        #     "id": RT_W2,
+        #     "name": "刀塔一区(新)",
+        #     "tencent": addr_tencent(),
+        #     "record": addr_record(RT_W2),
+        #     "figure": addr_figure(RT_W2)
+        # },
     ],
 
-    "recommend": RT_T2
+    "recommend": RT_W2
 }
 
 ''' ----------------------

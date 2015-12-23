@@ -144,7 +144,7 @@ class JJC:
         for doc in cursor:
             user_uid = doc['user_uid']
             self._rank_reward_batch[user_uid] = DBData()
-            self._rank_reward_batch[user_uid]['coin'] = doc['reward']['coin']
+            self._rank_reward_batch[user_uid]['dcoin'] = doc['reward']['dcoin']
             self._rank_reward_batch[user_uid]['zuan'] = doc['reward']['zuan']
             self._rank_reward_batch[user_uid]['rank'] = doc['reward']['rank']
 
@@ -422,7 +422,7 @@ class JJC:
         reward = dict()
         if data['grade_got'] < data['grade']:
             reward_cfg = GRADE[data['grade_got']]
-            reward['coin'] = reward_cfg['-CoinReward']
+            reward['dcoin'] = reward_cfg['-CoinReward']
             reward['zuan'] = reward_cfg['-DiamondReward']
             reward['card'] = reward_cfg['-CardReward']
 
@@ -437,8 +437,8 @@ class JJC:
         reply_dict = dict()
         if user_uid in self._rank_reward_batch:
             reward = self._rank_reward_batch[user_uid]
-            if reward['coin'] > 0:
-                reply_dict['coin'] = reward['coin']
+            if reward['dcoin'] > 0:
+                reply_dict['dcoin'] = reward['dcoin']
                 reply_dict['zuan'] = reward['zuan']
                 reply_dict['rank'] = reward['rank']
 
@@ -446,7 +446,7 @@ class JJC:
                 """better hold all data, not del data, because there 3 places data in, add and del and syn will need more more
                 logic, more code, it is not worth
                 """
-                reward['coin'] = 0
+                reward['dcoin'] = 0
                 reward['zuan'] = 0
                 reward.touch += 1
                 """if want to release cold data, it is hold by dbdata_pusher, must release by dbdata_pusher, not itself
@@ -505,9 +505,9 @@ class JJC:
                 user_uid = player.data['user_uid']
                 if user_uid not in self._rank_reward_batch:
                     self._rank_reward_batch[user_uid] = DBData()
-                    self._rank_reward_batch[user_uid]['coin'] = 0
+                    self._rank_reward_batch[user_uid]['dcoin'] = 0
                     self._rank_reward_batch[user_uid]['zuan'] = 0
-                self._rank_reward_batch[user_uid]['coin'] += reward_mod['-CoinReward']
+                self._rank_reward_batch[user_uid]['dcoin'] += reward_mod['-CoinReward']
                 self._rank_reward_batch[user_uid]['zuan'] += reward_mod['-DiamondReward']
                 self._rank_reward_batch[user_uid]['rank'] = rank
                 self._rank_reward_batch[user_uid].touch += 1
@@ -533,10 +533,10 @@ class JJC:
     def dlg_gen_db_cmd_item(self, user_uid, reward):
         item = dict()
         item['filter'] = {'user_uid': user_uid}
-        if reward['coin'] > 0 and reward['zuan'] > 0:
+        if reward['dcoin'] > 0 and reward['zuan'] > 0:
             item['modifier'] = 'set'
             item['update'] = {'key': 'reward',
-                              'value': {'coin': reward['coin'],
+                              'value': {'dcoin': reward['dcoin'],
                                         'zuan': reward['zuan'],
                                         'rank': reward['rank']
                                         }
@@ -551,4 +551,4 @@ class JJC:
 if __name__ == "__main__":
     # jjc = JJC('192.168.1.250', 27017)
     conn = pymongo.MongoClient('42.62.101.24', 27017)
-    jjc = JJC(conn.dota)
+    jjc = JJC(conn[cfg.srvcfg['dbname_mongodb']])
