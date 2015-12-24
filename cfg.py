@@ -174,9 +174,22 @@ RT_T1 = 't1'
 RT_T2 = 't2'
 RT_T3 = 't3'
 
+RT_4399_1 = '4399_1'
+RT_4399_2 = '4399_2'
+
+RT_1758_1 = '1758_1'
+RT_1758_2 = '1758_2'
+
+RT_WX = 'wx'
+
+RT_1758_1T = '1758_1t'
+RT_1758_2T = '1758_2t'
+
 RT_L = 'l'
 
 _IPs = {
+    RT_L: '127.0.0.1',
+
     RT_W1: '203.195.243.33',
     RT_W2: '203.195.243.33',
     RT_W3: '203.195.243.33',
@@ -185,10 +198,15 @@ _IPs = {
     RT_T2: '42.62.101.24',
     RT_T3: '42.62.101.24',
 
-    RT_L: '127.0.0.1',
+
+    RT_1758_1T: '42.62.101.24',
+    RT_1758_2T: '42.62.101.24',
+
 }
 
 _PORT_PREFIXs = {
+    RT_L: 12010,
+
     RT_W1: 12010,
     RT_W2: 12020,
     RT_W3: 12030,
@@ -197,7 +215,9 @@ _PORT_PREFIXs = {
     RT_T2: 12020,
     RT_T3: 12030,
 
-    RT_L: 12010,
+
+    RT_1758_1T: 13010,
+    RT_1758_1T: 13020,
 }
 
 _PORT_TAILs = {
@@ -215,6 +235,30 @@ _DBNAMEs = {
     RT_T3: 'dota03',
 
     RT_L: 'dota',
+
+    RT_1758_1T: 'dota_1758_1',
+    RT_1758_2T: 'dota_1758_2',
+}
+
+"""0: no 1: wanba"""
+_TOKEN_CHECKs = {
+    RT_W1: 1,
+    RT_W2: 1,
+    RT_W3: 1,
+
+    RT_T1: 1,
+    RT_T2: 1,
+    RT_T3: 1,
+
+    RT_1758_1T: 0,
+    RT_1758_2T: 0,
+}
+
+"""0: not div, 1: div
+"""
+_OS_DIVs = {
+    RT_1758_1T: 1,
+    RT_1758_2T: 0,
 }
 
 """tecnet"""
@@ -263,6 +307,14 @@ def addr_db(rt):
 def port_db(rt):
     return _PORT_PREFIXs[rt] + _PORT_TAILs['db']
 
+"""token check"""
+def token_check(rt):
+    return _TOKEN_CHECKs[rt]
+
+"""os div"""
+def os_div(rt):
+    return _OS_DIVs(rt)
+
 srvcfg = None
 remote_type = ''
 def setup_srvcfg(rt):
@@ -287,33 +339,28 @@ def setup_srvcfg(rt):
         'port_record': port_record(rt),
 
         'addr_db': addr_db(rt),
-        'port_db': port_db(rt)
+        'port_db': port_db(rt),
+
+        'token_check': token_check(rt),
+        'os_div': os_div(rt),
     }
 
 srvinfo = {
     "list": [
         {
-            "id": RT_T1,
-            "name": "刀塔测试一区",
+            "id": RT_1758_1T,
+            "name": "1758刀塔测试一区",
             "tencent": addr_tencent(),
-            "record": addr_record(RT_T1),
-            "figure": addr_figure(RT_T1)
+            "record": addr_record(RT_1758_1T),
+            "figure": addr_figure(RT_1758_1T)
         },
 
         {
-            "id": RT_T2,
-            "name": "刀塔测试二区(新)",
+            "id": RT_1758_2T,
+            "name": "1758刀塔测试二区",
             "tencent": addr_tencent(),
-            "record": addr_record(RT_T2),
-            "figure": addr_figure(RT_T2)
-        },
-
-        {
-            "id": RT_T3,
-            "name": "刀塔测试三区(火)",
-            "tencent": addr_tencent(),
-            "record": addr_record(RT_T3),
-            "figure": addr_figure(RT_T3)
+            "record": addr_record(RT_1758_2T),
+            "figure": addr_figure(RT_1758_2T)
         },
 
         # {
@@ -333,7 +380,7 @@ srvinfo = {
         # },
     ],
 
-    "recommend": RT_W2
+    "recommend": RT_1758_2T
 }
 
 ''' ----------------------
@@ -346,6 +393,10 @@ test_users = {
             "E2A3BA5A805A5B4CCD8E2BB968E60D3D": 0,
             "4E7F433E6E89C32A4BFC6528DFDE3083": 0,
         }
+
+'''----------------------
+'''
+
 
 
 

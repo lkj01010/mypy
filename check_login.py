@@ -28,38 +28,41 @@ class LoginChecker(object):
     def check_info(self, user_id, user_key, zoneid, callback):
         self.check_ret_callback = callback
 
-        # if cfg.cur_remote != cfg.REMOTE_WANBA:
-        # ---------> temp test
-        if False:
-            # ]]
-            self.check_ret_callback(True)
+        if cfg.srvcfg['token_check'] == 0:
+            self.check_ret_callback()
         else:
-            is_need_check = False
-            if user_id in LoginChecker.user_cache.keys():
-                if user_key in LoginChecker.user_cache[user_id]:
-                    server_log.warn('check ok, account in cache')
-                    self.check_ret_callback(True)
-                else:
-                    is_need_check = True
+            # if cfg.cur_remote != cfg.REMOTE_WANBA:
+            # ---------> temp test
+            if False:
+                # ]]
+                self.check_ret_callback(True)
             else:
-                '''insure key-set in user_cache'''
-                LoginChecker.user_cache[user_id] = set()
-                server_log.warn('user_cache len: %d, user add: %s' % (len(LoginChecker.user_cache), user_id))
-                is_need_check = True
+                is_need_check = False
+                if user_id in LoginChecker.user_cache.keys():
+                    if user_key in LoginChecker.user_cache[user_id]:
+                        server_log.warn('check ok, account in cache')
+                        self.check_ret_callback(True)
+                    else:
+                        is_need_check = True
+                else:
+                    '''insure key-set in user_cache'''
+                    LoginChecker.user_cache[user_id] = set()
+                    server_log.warn('user_cache len: %d, user add: %s' % (len(LoginChecker.user_cache), user_id))
+                    is_need_check = True
 
-            if is_need_check:
-                server_log.info('need check_info, user_id = ' + user_id + 'user_key = ' + user_key)
-                '''should check from tencent server'''
-                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_tencent'] +
-                                                         '/?openid=' + user_id +
-                                                         '&openkey=' + user_key +
-                                                        '&user_pf=' + zoneid +
-                                                        '&api=k_userinfo' +
-                                                         '&platform=qzone' +
-                                                        '&callback=cb',
-                                                        method='GET')
-                server_log.info('new active url: ' + request.url)
-                self.chk_client.fetch(request, callback=self._check_response_callback)
+                if is_need_check:
+                    server_log.info('need check_info, user_id = ' + user_id + 'user_key = ' + user_key)
+                    '''should check from tencent server'''
+                    request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_tencent'] +
+                                                             '/?openid=' + user_id +
+                                                             '&openkey=' + user_key +
+                                                            '&user_pf=' + zoneid +
+                                                            '&api=k_userinfo' +
+                                                             '&platform=qzone' +
+                                                            '&callback=cb',
+                                                            method='GET')
+                    server_log.info('new active url: ' + request.url)
+                    self.chk_client.fetch(request, callback=self._check_response_callback)
 
     def _check_response_callback(self, response):
         server_log.info('check_callback: ' + str(response.body))
