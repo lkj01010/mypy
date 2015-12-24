@@ -79,6 +79,10 @@ class Record(object):
 if __name__ == "__main__":
     if not None:
         pass
+
+    testset = set()
+    testset.add('1#0#1')
+
     todaystr = datetime.datetime.today().strftime('%Y-%m-%d')
     today = datetime.date.today()
     todaystring = today.strftime('%Y-%m-%d')

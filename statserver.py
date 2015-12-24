@@ -66,7 +66,7 @@ class WriteStatToDBHandler(tornado.web.RequestHandler):
 
     def get(self):
         """as it is not a strictly important part, need not to check user certification"""
-        user_uid = self.get_argument('openid') + '_' + self.get_argument('user_pf')
+        user_uid = cfg.format_user_uid(self.get_argument('openid'), self.get_argument('user_pf'))
         modify_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         push_str = self.get_argument('stat')
 
@@ -95,7 +95,7 @@ class QuerySrvStateHandler(tornado.web.RequestHandler):
             region_id = cfg.srvinfo['recommend']
             try:
                 """get last access region info from cache or db, if has not, set recommend region"""
-                user_uid = self.get_argument('openid') + '_' + self.get_argument('user_pf')
+                user_uid = cfg.format_user_uid(self.get_argument('openid'), self.get_argument('user_pf'))
                 if user_uid in self.application.last_access_cache:
                     region_id = self.application.last_access_cache[user_uid]
                 else:

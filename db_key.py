@@ -36,7 +36,7 @@ def default_record_equip_attr():
 
 """v_-1:0 stand for new record"""
 def default_record():
-    if cfg.srvcfg['is_wanba'] == 1:
+    if cfg.srvcfg['channel'] == 1:
         return {
             "srv": default_record_srv(),
             "gold": 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
@@ -83,7 +83,7 @@ def default_record():
             'td_buyStoneTimes': 0,
             'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
 
-            'nickname': '', 'head': 0,
+            'nickname': 'TEMP_NAME', 'headidx': 0,
         }
 
 class _Acc:

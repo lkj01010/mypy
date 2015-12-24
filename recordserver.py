@@ -72,10 +72,7 @@ class ReadRecordHandler(tornado.web.RequestHandler):
 
         if is_valid:
             reply_dict['code'] = 1
-            if cfg.srvcfg['os_div'] == 1:
-                user_uid = self.get_argument('user_id') + '_' + self.get_argument('user_pf')
-            else:
-                user_uid = self.get_argument('user_id')
+            user_uid = cfg.format_user_uid(self.get_argument('user_id'), self.get_argument('user_pf'))
 
             reply_dict['record'] = self.application.record_mod.get_record(user_uid)
 
@@ -115,10 +112,7 @@ class WriteDirtyRecordHandler(tornado.web.RequestHandler):
 
     def _check_ret_callback(self, is_valid):
         if is_valid:
-            if cfg.srvcfg['os_div'] == 1:
-                user_uid = self.get_argument('user_id') + '_' + self.get_argument('user_pf')
-            else:
-                user_uid = self.get_argument('user_id')
+            user_uid = cfg.format_user_uid(self.get_argument('user_id'), self.get_argument('user_pf'))
             dirty_id = self.get_argument('dirty_id')
             # commit dirty record
             ret = self.application.record_mod.commit_record(user_uid, self.get_argument('dirty_record'))
@@ -188,10 +182,7 @@ class UserReqHandler(tornado.web.RequestHandler):
 
     def _check_ret_callback(self, is_valid):
         if is_valid:
-            if cfg.srvcfg['os_div'] == 1:
-                user_uid = self.get_argument('user_id') + '_' + self.get_argument('user_pf')
-            else:
-                user_uid = self.get_argument('user_id')
+            user_uid = cfg.format_user_uid(self.get_argument('user_id'), self.get_argument('user_pf'))
 
             reply = self.application.record_mod.handle_req(user_uid, self.get_argument('body'))
             reply_str = json.dumps(reply)

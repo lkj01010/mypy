@@ -9,7 +9,7 @@ import json
 
 http_client = None
 try:
-    http_client = httplib.HTTPConnection('127.0.0.1', 12001, timeout=30)
+    http_client = httplib.HTTPConnection('127.0.0.1', 13001, timeout=30)
 
     body = dict()
     body['type'] = 0

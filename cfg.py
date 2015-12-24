@@ -216,7 +216,7 @@ _PORT_PREFIXs = {
 
 
     RT_1758_1T: 13010,
-    RT_1758_1T: 13020,
+    RT_1758_2T: 13020,
 }
 
 _PORT_TAILs = {
@@ -278,13 +278,13 @@ def is_formal(rt):
         return 1
     else:
         return 0
-'''玩吧'''
-def is_wanba(rt):
+'''1.玩吧, 2. 1758'''
+def channel(rt):
     if rt == RT_W1 or rt == RT_W2 or rt == RT_W3 or \
             rt == RT_T1 or rt == RT_T2 or rt == RT_T3:
         return 1
     else:
-        return 0
+        return 2
 
 """tecnet"""
 def port_tencent():
@@ -294,10 +294,16 @@ def addr_tencent():
 
 
 """stat"""
-def port_stat():
-    return 12001
+def port_stat(rt):
+    if channel(rt) == 1:
+        return 12001
+    elif channel(rt) == 2:
+        return 13001
+    else:
+        raise Exception
+
 def addr_stat(rt):
-    return 'http://' + _IPs[rt] + ':' + str(port_stat())
+    return 'http://' + _IPs[rt] + ':' + str(port_stat(rt))
 
 
 """figure"""
@@ -338,7 +344,7 @@ def token_check(rt):
 
 """os div"""
 def os_div(rt):
-    return _OS_DIVs(rt)
+    return _OS_DIVs[rt]
 
 srvcfg = None
 srvinfo = None
@@ -359,7 +365,7 @@ def setup_srvcfg(rt):
         'port_figure': port_figure(),
 
         'addr_stat': addr_stat(rt),
-        'port_stat': port_stat(),
+        'port_stat': port_stat(rt),
 
         'addr_record': addr_record(rt),
         'port_record': port_record(rt),
@@ -371,7 +377,7 @@ def setup_srvcfg(rt):
         'os_div': os_div(rt),
 
         'is_formal': is_formal(rt),
-        'is_wanba': is_wanba(rt),
+        'channel': channel(rt),
     }
 
     global srvinfo
@@ -445,6 +451,12 @@ def setup_srvcfg(rt):
             "recommend": RT_1758_2T
         }
 
+'''有些平台需要区分ios和android玩家数据，这里分成不同id'''
+def format_user_uid(userid, pf):
+    if srvcfg['os_div'] == 1 and pf == '32':
+        return userid + '_' + pf
+    else:
+        return userid
 
 ''' ----------------------
 '''

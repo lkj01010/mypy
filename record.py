@@ -35,6 +35,9 @@ class Record(object):
         self.db.user.create_index('user_uid')
         self.db.mail.create_index('user_uid')
         self.db_client = tornado.httpclient.AsyncHTTPClient()
+
+
+
         """record save in"""
         self.cache = dict()
 
@@ -52,6 +55,11 @@ class Record(object):
 
         # jjc model
         self._jjc_mod = jjc.JJC(self.db, self)
+
+        self._username_cache = set()
+        '''travel all item in user to process some model'''
+        self._travel_user_record()
+
 
         # # event handler
         # self._event_timer = tornado.ioloop.PeriodicCallback(self._check_time_event, 5 * 1000)
@@ -75,6 +83,15 @@ class Record(object):
     #         trigger = v['trigger']
     #         if self._last_time < trigger < now:
     #             v['callback']()
+
+    def _travel_user_record(self):
+        cursor = self.db.user.find({}, projection={'_id': False,
+                                                   'user_uid': True,
+                                                   'record.nickname': True,
+                                                   })
+        for doc in cursor:
+            rec = doc['record']
+            self._username_cache.add(rec['nickname'])
 
     def get_user_data(self, user_uid):
         if user_uid in self.cache:
@@ -131,7 +148,7 @@ class Record(object):
             record['v_-1'] = 1
 
         # update zone info
-        if cfg.srvcfg['is_wanba'] == 1:
+        if cfg.srvcfg['channel'] == 1:
             user_id = user_uid[:-2]
             if user_id in self._user_zone_info_cache:
                 zone_info = self._user_zone_info_cache[user_id]
@@ -285,6 +302,8 @@ class Record(object):
             reply_dict = self._handle_acc_pay(user_uid, body)
         elif cmd == 'reset_continue_pay':
             reply_dict = self._handle_reset_continue_pay(user_uid)
+        elif cmd == 'set_nickname_and_headidx':
+            reply_dict = self._handle_set_nickname_and_headidx(user_uid, body)
         reply_dict['ret'] = 1
 
         # except KeyError:
@@ -409,6 +428,27 @@ class Record(object):
         user_data['srv']['lastConsumeDay'] = today_str
 
         return dict()
+
+    def _handle_set_nickname_and_headidx(self, user_uid, body):
+        is_ok = False
+        reply_dict = dict()
+        if body['nickname'] in self._username_cache:
+            reply_dict['unique'] = 0
+        else:
+            is_ok = True
+            self._username_cache.add(body['nickname'])
+
+            reply_dict['unique'] = 1
+            reply_dict['nickname'] = body['nickname']
+            reply_dict['headidx'] = body['headidx']
+
+        if is_ok:
+            self.cache[user_uid].touch += 1
+            user_data = self.get_user_data(user_uid)
+            user_data['nickname'] = body['nickname']
+            user_data['headidx'] = body['headidx']
+
+        return reply_dict
 
     '''-----------------------------------x--'''
 

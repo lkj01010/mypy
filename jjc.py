@@ -313,7 +313,7 @@ class JJC:
             player['grade'] = v.data['grade']
 
             user_record = self._record_mod.get_user_data(v.data['user_uid'])
-            if cfg.srvcfg['is_wanba'] == 1:
+            if cfg.srvcfg['channel'] == 1:
                 '''玩吧名字头像'''
                 if 'zone' in user_record:
                     if 'nickname' not in user_record['zone']:

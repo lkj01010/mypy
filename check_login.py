@@ -29,7 +29,7 @@ class LoginChecker(object):
         self.check_ret_callback = callback
 
         if cfg.srvcfg['token_check'] == 0:
-            self.check_ret_callback()
+            self.check_ret_callback(True)
         else:
             # if cfg.cur_remote != cfg.REMOTE_WANBA:
             # ---------> temp test
