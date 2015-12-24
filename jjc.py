@@ -313,12 +313,17 @@ class JJC:
             player['grade'] = v.data['grade']
 
             user_record = self._record_mod.get_user_data(v.data['user_uid'])
-            if 'zone' in user_record:
-                if 'nickname' not in user_record['zone']:
-                    print 'who?'
-                else:
-                    player['nickname'] = user_record['zone']['nickname']
-                    player['figureurl'] = user_record['zone']['figureurl']
+            if cfg.srvcfg['is_wanba'] == 1:
+                '''玩吧名字头像'''
+                if 'zone' in user_record:
+                    if 'nickname' not in user_record['zone']:
+                        print 'who?'
+                    else:
+                        player['nickname'] = user_record['zone']['nickname']
+                        player['figureurl'] = user_record['zone']['figureurl']
+            else:
+                player['nickname'] = user_record['nickname']
+                player['figureurl'] = ''
 
             reply_list.append(player)
         if user_uid in self._player_dict:

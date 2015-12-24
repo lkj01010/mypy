@@ -131,11 +131,12 @@ class Record(object):
             record['v_-1'] = 1
 
         # update zone info
-        user_id = user_uid[:-2]
-        if user_id in self._user_zone_info_cache:
-            zone_info = self._user_zone_info_cache[user_id]
-            record['zone']['nickname'] = zone_info['nickname']
-            record['zone']['figureurl'] = zone_info['figureurl']
+        if cfg.srvcfg['is_wanba'] == 1:
+            user_id = user_uid[:-2]
+            if user_id in self._user_zone_info_cache:
+                zone_info = self._user_zone_info_cache[user_id]
+                record['zone']['nickname'] = zone_info['nickname']
+                record['zone']['figureurl'] = zone_info['figureurl']
 
         # check time logic
         self._jjc_mod.data_check(user_uid, record)

@@ -36,29 +36,55 @@ def default_record_equip_attr():
 
 """v_-1:0 stand for new record"""
 def default_record():
-    return {
-        "srv": default_record_srv(),
-        "gold": 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
-        "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
-        "v_1" : 50, "v_2" : 0, "v_3" : 10, "v_8" : 0, "v_14" : 1,
-        "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
-        "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 0,
-        "v_24": 0, "v_25": 0, "v_31": 0, "v_41": 0,
-        "day": now.day, "month": now.month, "hour": now.hour,
-        "jjc" : default_record_jjc(),
-        "zone" : default_record_zone(),
-        'gmcardleft': 0, 'smcardleft': 0, 'v_42': 0, 'v_43': 0,
-        # "role": default_record_role(),
-        'r_exp': 0, 'stone': 0, 'offlinesec': 0, 'modify_time': now.strftime("%Y-%m-%d-%H-%M"),
-        'r_sk': [1, 0, 0, 0],
-        'r_equip_quality': default_record_equip_quality(),
-        'r_equip_star': default_record_equip_star(),
-        'zxtimes': default_record_zhixian_times(),
-        'bone': 0, 'flakes': 0, 'xlstone': 0, 'dcoin': 0,
-        'r_equip_attr': default_record_equip_attr(),
-        'td_buyStoneTimes': 0,
-        'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
-    }
+    if cfg.srvcfg['is_wanba'] == 1:
+        return {
+            "srv": default_record_srv(),
+            "gold": 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
+            "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
+            "v_1" : 50, "v_2" : 0, "v_3" : 10, "v_8" : 0, "v_14" : 1,
+            "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
+            "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 0,
+            "v_24": 0, "v_25": 0, "v_31": 0, "v_41": 0,
+            "day": now.day, "month": now.month, "hour": now.hour,
+            "jjc" : default_record_jjc(),
+            "zone" : default_record_zone(),
+            'gmcardleft': 0, 'smcardleft': 0, 'v_42': 0, 'v_43': 0,
+            # "role": default_record_role(),
+            'r_exp': 0, 'stone': 0, 'offlinesec': 0, 'modify_time': now.strftime("%Y-%m-%d-%H-%M"),
+            'r_sk': [1, 0, 0, 0],
+            'r_equip_quality': default_record_equip_quality(),
+            'r_equip_star': default_record_equip_star(),
+            'zxtimes': default_record_zhixian_times(),
+            'bone': 0, 'flakes': 0, 'xlstone': 0, 'dcoin': 0,
+            'r_equip_attr': default_record_equip_attr(),
+            'td_buyStoneTimes': 0,
+            'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
+        }
+    else:
+        return {
+            "srv": default_record_srv(),
+            "gold": 5000, "guanka" : 1, "kapailan" : 3, "v_23" : 0, "v_22" : 0, "v_21" : 0,
+            "kapais" : "1-1-1-1-0-0|2-2-1-1-0-0|3-8-1-1-0-0", "v_16" : 1, "v_6" : 3, "v_7" : 15, "v_0" : 50,
+            "v_1" : 50, "v_2" : 0, "v_3" : 10, "v_8" : 0, "v_14" : 1,
+            "chengshi_3" : 1, "zuan" : 100, "chapter" : 1, "chengshi_1" : 1, "chengshi_2" : 1,
+            "v_15" : 1, "v_12" : 1, "v_13" : 1, "v_10" : 0, "v_11" : 1, "v_-1" : 0,
+            "v_24": 0, "v_25": 0, "v_31": 0, "v_41": 0,
+            "day": now.day, "month": now.month, "hour": now.hour,
+            "jjc" : default_record_jjc(),
+            'gmcardleft': 0, 'smcardleft': 0, 'v_42': 0, 'v_43': 0,
+            # "role": default_record_role(),
+            'r_exp': 0, 'stone': 0, 'offlinesec': 0, 'modify_time': now.strftime("%Y-%m-%d-%H-%M"),
+            'r_sk': [1, 0, 0, 0],
+            'r_equip_quality': default_record_equip_quality(),
+            'r_equip_star': default_record_equip_star(),
+            'zxtimes': default_record_zhixian_times(),
+            'bone': 0, 'flakes': 0, 'xlstone': 0, 'dcoin': 0,
+            'r_equip_attr': default_record_equip_attr(),
+            'td_buyStoneTimes': 0,
+            'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
+
+            'nickname': '', 'head': 0,
+        }
 
 class _Acc:
     _u_count = 0

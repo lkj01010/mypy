@@ -198,7 +198,6 @@ _IPs = {
     RT_T2: '42.62.101.24',
     RT_T3: '42.62.101.24',
 
-
     RT_1758_1T: '42.62.101.24',
     RT_1758_2T: '42.62.101.24',
 
@@ -242,6 +241,8 @@ _DBNAMEs = {
 
 """0: no 1: wanba"""
 _TOKEN_CHECKs = {
+    RT_L: 0,
+
     RT_W1: 1,
     RT_W2: 1,
     RT_W3: 1,
@@ -257,9 +258,33 @@ _TOKEN_CHECKs = {
 """0: not div, 1: div
 """
 _OS_DIVs = {
+    RT_L: 1,
+
+    RT_W1: 1,
+    RT_W2: 1,
+    RT_W3: 1,
+
+    RT_T1: 1,
+    RT_T2: 1,
+    RT_T3: 1,
+
     RT_1758_1T: 1,
     RT_1758_2T: 0,
 }
+
+'''正式服'''
+def is_formal(rt):
+    if rt == RT_W1 or rt == RT_W2 or rt == RT_W3:
+        return 1
+    else:
+        return 0
+'''玩吧'''
+def is_wanba(rt):
+    if rt == RT_W1 or rt == RT_W2 or rt == RT_W3 or \
+            rt == RT_T1 or rt == RT_T2 or rt == RT_T3:
+        return 1
+    else:
+        return 0
 
 """tecnet"""
 def port_tencent():
@@ -284,7 +309,7 @@ def addr_figure(rt):
 
 """mongodb"""
 def ip_mongodb(rt):
-    if rt == RT_W1 or rt == RT_W2 or rt == RT_W3:
+    if is_formal(rt) == 1:
         return "127.0.0.1"
     else:
         return _IPs[rt]
@@ -316,6 +341,7 @@ def os_div(rt):
     return _OS_DIVs(rt)
 
 srvcfg = None
+srvinfo = None
 remote_type = ''
 def setup_srvcfg(rt):
     global remote_type
@@ -343,45 +369,82 @@ def setup_srvcfg(rt):
 
         'token_check': token_check(rt),
         'os_div': os_div(rt),
+
+        'is_formal': is_formal(rt),
+        'is_wanba': is_wanba(rt),
     }
 
-srvinfo = {
-    "list": [
-        {
-            "id": RT_1758_1T,
-            "name": "1758刀塔测试一区",
-            "tencent": addr_tencent(),
-            "record": addr_record(RT_1758_1T),
-            "figure": addr_figure(RT_1758_1T)
-        },
+    global srvinfo
+    if rt == RT_W1 or rt == RT_W2 or rt == RT_W3:
+        srvinfo = {
+            "list": [
+                {
+                    "id": RT_W1,
+                    "name": "封测区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_W1),
+                    "figure": addr_figure(RT_W1)
+                },
 
-        {
-            "id": RT_1758_2T,
-            "name": "1758刀塔测试二区",
-            "tencent": addr_tencent(),
-            "record": addr_record(RT_1758_2T),
-            "figure": addr_figure(RT_1758_2T)
-        },
+                {
+                    "id": RT_W2,
+                    "name": "刀塔一区(新)",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_W2),
+                    "figure": addr_figure(RT_W2)
+                },
+            ],
+            "recommend": RT_W2
+        }
+    elif rt == RT_T1 or rt == RT_T2 or rt == RT_T3:
+        srvinfo = {
+            "list": [
+                {
+                    "id": RT_T1,
+                    "name": "刀塔测试一区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_T1),
+                    "figure": addr_figure(RT_T1)
+                },
+                {
+                    "id": RT_T2,
+                    "name": "刀塔测试二区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_T2),
+                    "figure": addr_figure(RT_T2)
+                },
+                {
+                    "id": RT_T3,
+                    "name": "刀塔测试二区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_T3),
+                    "figure": addr_figure(RT_T3)
+                },
+            ],
+            "recommend": RT_T3
+        }
+    elif rt == RT_1758_1T or rt == RT_1758_2T:
+        srvinfo = {
+            "list": [
+                {
+                    "id": RT_1758_1T,
+                    "name": "1758刀塔测试一区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_1758_1T),
+                    "figure": addr_figure(RT_1758_1T)
+                },
 
-        # {
-        #     "id": RT_W1,
-        #     "name": "封测区",
-        #     "tencent": addr_tencent(),
-        #     "record": addr_record(RT_W1),
-        #     "figure": addr_figure(RT_W1)
-        # },
-        #
-        # {
-        #     "id": RT_W2,
-        #     "name": "刀塔一区(新)",
-        #     "tencent": addr_tencent(),
-        #     "record": addr_record(RT_W2),
-        #     "figure": addr_figure(RT_W2)
-        # },
-    ],
+                {
+                    "id": RT_1758_2T,
+                    "name": "1758刀塔测试二区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_1758_2T),
+                    "figure": addr_figure(RT_1758_2T)
+                },
+            ],
+            "recommend": RT_1758_2T
+        }
 
-    "recommend": RT_1758_2T
-}
 
 ''' ----------------------
 '''
