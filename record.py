@@ -56,7 +56,9 @@ class Record(object):
         # jjc model
         self._jjc_mod = jjc.JJC(self.db, self)
 
+        '''channel ascp'''
         self._username_cache = set()
+
         '''travel all item in user to process some model'''
         self._travel_user_record()
 
@@ -85,13 +87,14 @@ class Record(object):
     #             v['callback']()
 
     def _travel_user_record(self):
-        cursor = self.db.user.find({}, projection={'_id': False,
-                                                   'user_uid': True,
-                                                   'record.nickname': True,
-                                                   })
-        for doc in cursor:
-            rec = doc['record']
-            self._username_cache.add(rec['nickname'])
+        if cfg.srvcfg['channel'] == 2:
+            cursor = self.db.user.find({}, projection={'_id': False,
+                                                       'user_uid': True,
+                                                       'record.nickname': True,
+                                                       })
+            for doc in cursor:
+                rec = doc['record']
+                self._username_cache.add(rec['nickname'])
 
     def get_user_data(self, user_uid):
         if user_uid in self.cache:

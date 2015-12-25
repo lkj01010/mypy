@@ -174,16 +174,16 @@ RT_T1 = 't1'
 RT_T2 = 't2'
 RT_T3 = 't3'
 
-RT_4399_1 = '4399_1'
-RT_4399_2 = '4399_2'
+RT_acsp_4399_1 = 'acsp_4399_1'
+RT_acsp_4399_2 = 'acsp_4399_2'
 
-RT_1758_1 = '1758_1'
-RT_1758_2 = '1758_2'
+RT_acsp_1758_1 = 'acsp_1758_1'
+RT_acsp_1758_2 = 'acsp_1758_2'
 
-RT_WX = 'wx'
+RT_acsp_wx = 'acsp_wx'
 
-RT_1758_1T = '1758_1t'
-RT_1758_2T = '1758_2t'
+RT_acsp_1758_1_t = 'acsp_1758_1_t'
+RT_acsp_1758_2_t = 'acsp_1758_2_t'
 
 RT_L = 'l'
 
@@ -198,9 +198,8 @@ _IPs = {
     RT_T2: '42.62.101.24',
     RT_T3: '42.62.101.24',
 
-    RT_1758_1T: '42.62.101.24',
-    RT_1758_2T: '42.62.101.24',
-
+    RT_acsp_1758_1_t: '42.62.101.24',
+    RT_acsp_1758_2_t: '42.62.101.24',
 }
 
 _PORT_PREFIXs = {
@@ -215,8 +214,8 @@ _PORT_PREFIXs = {
     RT_T3: 12030,
 
 
-    RT_1758_1T: 13010,
-    RT_1758_2T: 13020,
+    RT_acsp_1758_1_t: 13010,
+    RT_acsp_1758_2_t: 13020,
 }
 
 _PORT_TAILs = {
@@ -235,8 +234,12 @@ _DBNAMEs = {
 
     RT_L: 'dota',
 
-    RT_1758_1T: 'dota_1758_1',
-    RT_1758_2T: 'dota_1758_2',
+    RT_acsp_1758_1_t: 'dota_acsp_1758_1',
+    RT_acsp_1758_2_t: 'dota_acsp_1758_2',
+}
+
+_COM_DBNAMEs = {
+
 }
 
 """0: no 1: wanba"""
@@ -251,8 +254,8 @@ _TOKEN_CHECKs = {
     RT_T2: 1,
     RT_T3: 1,
 
-    RT_1758_1T: 0,
-    RT_1758_2T: 0,
+    RT_acsp_1758_1_t: 0,
+    RT_acsp_1758_2_t: 0,
 }
 
 """0: not div, 1: div
@@ -268,9 +271,24 @@ _OS_DIVs = {
     RT_T2: 1,
     RT_T3: 1,
 
-    RT_1758_1T: 1,
-    RT_1758_2T: 0,
+    RT_acsp_1758_1_t: 1,
+    RT_acsp_1758_2_t: 0,
 }
+
+_SRV_GROUPs = [
+    {
+        'srvs': [RT_W1, RT_W2, RT_W3],
+        'db': ''
+    },
+    {
+        'srvs': [RT_T1, RT_T2, RT_T3],
+        'db': ''
+    },
+    {
+        'srvs': [RT_acsp_1758_1_t, RT_acsp_1758_2_t],
+        'db': 'dota_acsp'
+    }
+]
 
 '''正式服'''
 def is_formal(rt):
@@ -278,13 +296,20 @@ def is_formal(rt):
         return 1
     else:
         return 0
-'''1.玩吧, 2. 1758'''
+'''1.玩吧, 2. acsp'''
 def channel(rt):
     if rt == RT_W1 or rt == RT_W2 or rt == RT_W3 or \
             rt == RT_T1 or rt == RT_T2 or rt == RT_T3:
         return 1
     else:
         return 2
+
+def srv_group(rt):
+    for k, v in _SRV_GROUPs:
+        for i, r in enumerate(v['srvs']):
+            if r == rt:
+                return v['srvs']
+    return []
 
 """tecnet"""
 def port_tencent():
@@ -305,6 +330,12 @@ def port_stat(rt):
 def addr_stat(rt):
     return 'http://' + _IPs[rt] + ':' + str(port_stat(rt))
 
+"""center"""
+def port_center(rt):
+        return 12003
+
+def addr_center(rt):
+    return 'http://' + _IPs[rt] + ':' + str(port_center(rt))
 
 """figure"""
 def port_figure():
@@ -323,7 +354,12 @@ def port_mongodb():
     return 27017
 def dbname_mongodb(rt):
     return _DBNAMEs[rt]
-
+def comdbname_mongodb(rt):
+    for k, v in _SRV_GROUPs:
+        for i, r in enumerate(v['srvs']):
+            if r == rt:
+                return v['db']
+    return ''
 """------------------"""
 
 """record srv"""
@@ -357,6 +393,7 @@ def setup_srvcfg(rt):
         'ip_mongodb': ip_mongodb(rt),
         'port_mongodb': port_mongodb(),
         'dbname_mongodb': dbname_mongodb(rt),
+        'comdbname_mongodb': comdbname_mongodb(rt),
 
         'addr_tencent': addr_tencent(),
         'port_tencent': port_tencent(),
@@ -370,8 +407,13 @@ def setup_srvcfg(rt):
         'addr_record': addr_record(rt),
         'port_record': port_record(rt),
 
+        'addr_center': addr_center(rt),
+        'port_center': port_center(rt),
+
         'addr_db': addr_db(rt),
         'port_db': port_db(rt),
+
+        'srv_group': srv_group(rt),
 
         'token_check': token_check(rt),
         'os_div': os_div(rt),
@@ -429,26 +471,28 @@ def setup_srvcfg(rt):
             ],
             "recommend": RT_T3
         }
-    elif rt == RT_1758_1T or rt == RT_1758_2T:
+    elif rt == RT_acsp_1758_1_t or rt == RT_acsp_1758_2_t:
         srvinfo = {
             "list": [
                 {
-                    "id": RT_1758_1T,
+                    "id": RT_acsp_1758_1_t,
                     "name": "1758刀塔测试一区",
                     "tencent": addr_tencent(),
-                    "record": addr_record(RT_1758_1T),
-                    "figure": addr_figure(RT_1758_1T)
+                    "record": addr_record(RT_acsp_1758_1_t),
+                    "figure": addr_figure(RT_acsp_1758_1_t),
+                    'center': addr_center(RT_acsp_1758_1_t),
                 },
 
                 {
-                    "id": RT_1758_2T,
+                    "id": RT_acsp_1758_2_t,
                     "name": "1758刀塔测试二区",
                     "tencent": addr_tencent(),
-                    "record": addr_record(RT_1758_2T),
-                    "figure": addr_figure(RT_1758_2T)
+                    "record": addr_record(RT_acsp_1758_2_t),
+                    "figure": addr_figure(RT_acsp_1758_2_t),
+                    'center': addr_center(RT_acsp_1758_2_t),
                 },
             ],
-            "recommend": RT_1758_2T
+            "recommend": RT_acsp_1758_2_t
         }
 
 '''有些平台需要区分ios和android玩家数据，这里分成不同id'''

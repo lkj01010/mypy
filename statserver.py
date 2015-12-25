@@ -137,15 +137,22 @@ class CommandHandler(tornado.web.RequestHandler):
                     self.application.server_state_msg = self.application.server_notice_msg
                     self.application.server_running = True
 
-                """存档服务器"""
-                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_record'] + '/cmd', method='POST', body=command)
-                self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
-                """openapi服务器"""
-                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_tencent'] + '/cmd', method='POST',
-                                                         body=command)
-                self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
+                srv_str = ""
+                for v in cfg.srvcfg['srv_group']:
+                    """存档服务器"""
+                    addr_rec = cfg.addr_record(v)
+                    request = tornado.httpclient.HTTPRequest(addr_rec + '/cmd', method='POST', body=command)
+                    self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
 
-                self.write("hello")
+                    if cfg.srvcfg['channel'] == 1:
+                        '''玩吧'''
+                        """openapi服务器"""
+                        request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_tencent'] + '/cmd', method='POST',
+                                                                 body=command)
+                        self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
+
+                    srv_str += v + ' '
+                self.write("send command to servers: " + v)
                 # self.send_error()
             except KeyError:
                 pass
@@ -157,10 +164,12 @@ class CommandHandler(tornado.web.RequestHandler):
         server_log.warn('cmd is:\n ' + command_str)
         try:
             if command_dict["dest"] == 'record':
-                """存档服务器"""
-                request = tornado.httpclient.HTTPRequest(cfg.srvcfg['addr_record'] + '/cmd', method='POST',
+                for v in cfg.srvcfg['srv_group']:
+                    """存档服务器"""
+                    addr_rec = cfg.addr_record(v)
+                    request = tornado.httpclient.HTTPRequest(addr_rec + '/cmd', method='POST',
                                                          body=command_dict['body'])
-                self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
+                    self.application.client.fetch(request, callback=CommandHandler.cmd_callback)
 
         except KeyError:
                 self.write("{'ok': 0, 'msg': 'exception occur'}")

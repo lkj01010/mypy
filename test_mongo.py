@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import pymongo
 import random
 import time
@@ -80,8 +81,14 @@ if __name__ == "__main__":
     if not None:
         pass
 
+    jxxj = ["xx", "yy", "zz"]
+    for k in enumerate(jxxj):
+        print k
+    for v in jxxj:
+        print v
+
     testset = set()
-    testset.add('1#0#1')
+    testset.add('谁是你的')
 
     todaystr = datetime.datetime.today().strftime('%Y-%m-%d')
     today = datetime.date.today()
