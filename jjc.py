@@ -324,6 +324,7 @@ class JJC:
             else:
                 player['nickname'] = user_record['nickname']
                 player['figureurl'] = ''
+                player['headidx'] = user_record['headidx']
 
             reply_list.append(player)
         if user_uid in self._player_dict:

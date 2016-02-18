@@ -200,6 +200,9 @@ _IPs = {
 
     RT_acsp_1758_1_t: '42.62.101.24',
     RT_acsp_1758_2_t: '42.62.101.24',
+
+    RT_acsp_1758_1: '42.62.101.136',
+    RT_acsp_1758_2: '42.62.101.136',
 }
 
 _PORT_PREFIXs = {
@@ -216,6 +219,9 @@ _PORT_PREFIXs = {
 
     RT_acsp_1758_1_t: 13010,
     RT_acsp_1758_2_t: 13020,
+
+    RT_acsp_1758_1: 13010,
+    RT_acsp_1758_2: 13020
 }
 
 _PORT_TAILs = {
@@ -236,6 +242,9 @@ _DBNAMEs = {
 
     RT_acsp_1758_1_t: 'dota_acsp_1758_1',
     RT_acsp_1758_2_t: 'dota_acsp_1758_2',
+
+    RT_acsp_1758_1: 'dota_acsp_1758_1',
+    RT_acsp_1758_2: 'dota_acsp_1758_2',
 }
 
 _COM_DBNAMEs = {
@@ -256,6 +265,9 @@ _TOKEN_CHECKs = {
 
     RT_acsp_1758_1_t: 0,
     RT_acsp_1758_2_t: 0,
+
+    RT_acsp_1758_1: 0,
+    RT_acsp_1758_2: 0,
 }
 
 """0: not div, 1: div
@@ -271,8 +283,11 @@ _OS_DIVs = {
     RT_T2: 1,
     RT_T3: 1,
 
-    RT_acsp_1758_1_t: 1,
+    RT_acsp_1758_1_t: 0,
     RT_acsp_1758_2_t: 0,
+
+    RT_acsp_1758_1: 0,
+    RT_acsp_1758_2: 0,
 }
 
 _SRV_GROUPs = [
@@ -286,6 +301,10 @@ _SRV_GROUPs = [
     },
     {
         'srvs': [RT_acsp_1758_1_t, RT_acsp_1758_2_t],
+        'db': 'dota_acsp'
+    },
+    {
+        'srvs': [RT_acsp_1758_1, RT_acsp_1758_2],
         'db': 'dota_acsp'
     }
 ]
@@ -305,7 +324,7 @@ def channel(rt):
         return 2
 
 def srv_group(rt):
-    for k, v in _SRV_GROUPs:
+    for k, v in enumerate(_SRV_GROUPs):
         for i, r in enumerate(v['srvs']):
             if r == rt:
                 return v['srvs']
@@ -355,7 +374,7 @@ def port_mongodb():
 def dbname_mongodb(rt):
     return _DBNAMEs[rt]
 def comdbname_mongodb(rt):
-    for k, v in _SRV_GROUPs:
+    for k, v in enumerate(_SRV_GROUPs):
         for i, r in enumerate(v['srvs']):
             if r == rt:
                 return v['db']
@@ -494,11 +513,37 @@ def setup_srvcfg(rt):
             ],
             "recommend": RT_acsp_1758_2_t
         }
+    elif rt == RT_acsp_1758_1 or rt == RT_acsp_1758_2:
+        srvinfo = {
+            "list": [
+                {
+                    "id": RT_acsp_1758_1,
+                    "name": "刀塔一区",
+                    "tencent": addr_tencent(),
+                    "record": addr_record(RT_acsp_1758_1),
+                    "figure": addr_figure(RT_acsp_1758_1),
+                    'center': addr_center(RT_acsp_1758_1),
+                },
+
+                # {
+                #     "id": RT_acsp_1758_2,
+                #     "name": "1758刀塔二区",
+                #     "tencent": addr_tencent(),
+                #     "record": addr_record(RT_acsp_1758_2),
+                #     "figure": addr_figure(RT_acsp_1758_2),
+                #     'center': addr_center(RT_acsp_1758_2),
+                # },
+            ],
+            "recommend": RT_acsp_1758_1
+        }
 
 '''有些平台需要区分ios和android玩家数据，这里分成不同id'''
 def format_user_uid(userid, pf):
-    if srvcfg['os_div'] == 1 and pf == '32':
-        return userid + '_' + pf
+    if srvcfg['os_div'] == 1:
+        if srvcfg['channel'] == 1:
+            return userid + '_' + pf
+        elif pf == '32':
+            return userid + '_' + pf
     else:
         return userid
 
@@ -515,9 +560,9 @@ test_users = {
 
 '''----------------------
 '''
-
-
-
+if __name__ == "__main__":
+    ret = comdbname_mongodb("acsp_1758_1_t")
+    print ret
 
 ''' NOTE pymongo
 1. update_one: sec param should like '$set  *****'  not a 'xx:xx' , must begin with '$', or you should use 'replace_one'

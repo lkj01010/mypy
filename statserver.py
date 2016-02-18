@@ -42,9 +42,18 @@ class Application(tornado.web.Application):
         self.server_state_msg = ""
 
         """temp"""
-        self.server_notice_msg = "【更新公告】<br/>《天天刀塔》等你来战！加入qq群专业客服为您解答各种疑惑！还可以同战友交流！<br/>更新内容：<br/>1.新增区服功能<br/>2.新增召唤师系统、装备系统、挂机功能<br/>3.新增竞技场商城及游戏内活动界面<br/>4.优化各关卡难度、玩法及各单位数值<br/>5.调整每日奖励内容、各礼包内容及价格<br/>qq群组：223105490	     客服QQ：800111767"
-        # self.server_notice_msg = "【更新公告】<br/>《天天刀塔》等你来战！加入qq群专业客服为您解答各种疑惑！还可以同战友交流！<br/>更新内容：<br/>1.更新月卡及许愿池功能，详见游戏内“商城”及“许愿”界面<br/>2.新增“英雄礼包”，酒馆中新增“英雄征召”功能<br/>3.优化竞技场排名奖励、连胜荣誉奖励及购买次数<br/>4.调整首充礼包价格及内容，调整7日签到内容<br/>5.调整卡牌升级经验<br/>qq群组：223105490	     客服QQ：800111767"
-        self.server_state_msg = self.server_notice_msg
+        if cfg.srvcfg['channel'] == 1:
+            '''玩吧'''
+            self.server_notice_msg = "【更新公告】<br/>修复了部分玩家打开军团界面会卡住的问题<br/>更新内容：<br/>1.新增区服功能<br/>2.新增召唤师系统、装备系统、挂机功能<br/>3.新增竞技场商城及游戏内活动界面<br/>4.优化各关卡难度、玩法及各单位数值<br/>5.调整每日奖励内容、各礼包内容及价格<br/>qq群组：223105490	     客服QQ：800111767"
+        else:
+            self.server_notice_msg = {
+                'local': '【公告】<br/>最烧脑的策略类游戏《天天刀塔》等你来战！召集战友，呼唤伙伴，组建自己的军队征战沙场吧！<br/>【活动】<br/>活动一：累计消费活动<br/>活动内容：指定时间内累计消费达到一定金额即可获得奖励！<br/>活动二：连续消费活动<br/>活动内容：7日内每日连续消费即可获得奖励！<br/>',
+                '1758': '【公告】<br/>最烧脑的策略类游戏《天天刀塔》等你来战！召集战友，呼唤伙伴，组建自己的军队征战沙场吧！<br/>【活动】<br/>活动一：累计消费活动<br/>活动内容：指定时间内累计消费达到一定金额即可获得奖励！<br/>活动二：连续消费活动<br/>活动内容：7日内每日连续消费即可获得奖励！<br/>qq群组：280794964       客服QQ：2660866818',
+                'py68': '【公告】<br/>最烧脑的策略类游戏《天天刀塔》等你来战！召集战友，呼唤伙伴，组建自己的军队征战沙场吧！<br/>【活动】<br/>活动一：累计消费活动<br/>活动内容：指定时间内累计消费达到一定金额即可获得奖励！<br/>活动二：连续消费活动<br/>活动内容：7日内每日连续消费即可获得奖励！<br/>qq群组：305225247       客服QQ：2086377308',
+                'ning': '【公告】<br/>最烧脑的策略类游戏《天天刀塔》等你来战！召集战友，呼唤伙伴，组建自己的军队征战沙场吧！<br/>【活动】<br/>活动一：累计消费活动<br/>活动内容：指定时间内累计消费达到一定金额即可获得奖励！<br/>活动二：连续消费活动<br/>活动内容：7日内每日连续消费即可获得奖励！<br/>',
+                '7724': '【公告】<br/>最烧脑的策略类游戏《天天刀塔》等你来战！召集战友，呼唤伙伴，组建自己的军队征战沙场吧！<br/>【活动】<br/>活动一：累计消费活动<br/>活动内容：指定时间内累计消费达到一定金额即可获得奖励！<br/>活动二：连续消费活动<br/>活动内容：7日内每日连续消费即可获得奖励！<br/>',
+                'hdhd': '【公告】<br/>最烧脑的策略类游戏《天天刀塔》等你来战！召集战友，呼唤伙伴，组建自己的军队征战沙场吧！<br/>【活动】<br/>活动一：累计消费活动<br/>活动内容：指定时间内累计消费达到一定金额即可获得奖励！<br/>活动二：连续消费活动<br/>活动内容：7日内每日连续消费即可获得奖励！<br/>'
+            }
 
         """last access"""
         self.db.lastaccess.create_index('user_uid')
@@ -107,7 +116,17 @@ class QuerySrvStateHandler(tornado.web.RequestHandler):
 
             reply_dict = dict()
             reply_dict['state'] = 1
-            reply_dict['msg'] = self.application.server_state_msg
+            if cfg.srvcfg['channel'] == 1:
+                """玩吧"""
+                reply_dict['msg'] = self.application.server_notice_msg
+            else:
+                """其他渠道"""
+                ch = self.get_argument('ch')
+                if ch in self.application.server_notice_msg:
+                    reply_dict['msg'] = self.application.server_notice_msg[ch]
+                else:
+                    reply_dict['msg'] = self.application.server_notice_msg['local']
+
             reply_dict['srvinfo'] = cfg.srvinfo
             reply_dict['region_id'] = region_id
             reply = json.JSONEncoder().encode(reply_dict)

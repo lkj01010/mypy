@@ -4,6 +4,10 @@ import pymongo
 import cfg
 import datetime
 
+import tornado.options
+from tornado.options import define, options
+# define("rt", default='', help="reomote type", type=str)
+
 now = datetime.datetime.now()
 def default_record_zone():
     return {
@@ -59,6 +63,7 @@ def default_record():
             'r_equip_attr': default_record_equip_attr(),
             'td_buyStoneTimes': 0,
             'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
+            'shareTimes': 0, 'lastShareTime': '',
         }
     else:
         return {
@@ -71,6 +76,7 @@ def default_record():
             "v_24": 0, "v_25": 0, "v_31": 0, "v_41": 0,
             "day": now.day, "month": now.month, "hour": now.hour,
             "jjc" : default_record_jjc(),
+            "zone" : default_record_zone(),
             'gmcardleft': 0, 'smcardleft': 0, 'v_42': 0, 'v_43': 0,
             # "role": default_record_role(),
             'r_exp': 0, 'stone': 0, 'offlinesec': 0, 'modify_time': now.strftime("%Y-%m-%d-%H-%M"),
@@ -82,8 +88,8 @@ def default_record():
             'r_equip_attr': default_record_equip_attr(),
             'td_buyStoneTimes': 0,
             'acc_pay': 0, 'continue_pay': 0, 'acc_pay_get': [], 'continue_pay_get': [],
-
-            'nickname': 'TEMP_NAME', 'headidx': 0,
+            'nickname': '', 'headidx': 0,
+            'shareTimes': 0, 'lastShareTime': '',
         }
 
 class _Acc:
@@ -250,4 +256,51 @@ def fill_keys():
             db.user.update_one({'user_uid': user_uid}, {'$set': {'record.continue_pay_get': []}})
             print str(_acc.acc()) + '[db_key] : add record.continue_pay_get:', user_uid
 
+        if 'shareTimes' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.shareTimes': 0}})
+            print str(_acc.acc()) + '[db_key] : add record.shareTimes:', user_uid
+
+        if 'lastShareTime' not in doc['record']:
+            db.user.update_one({'user_uid': user_uid}, {'$set': {'record.lastShareTime': ''}})
+            print str(_acc.acc()) + '[db_key] : add record.lastShareTime:', user_uid
+
+
     print '[db_key] key filling finished.'
+
+def cut_kapais(strbefore):
+    cnt = 0
+    i = 0
+    for c in strbefore:
+        if c == '|':
+            cnt += 1
+            if cnt > 60:
+                break
+        i += 1
+    strafter = strbefore[0:i]
+    return strafter
+
+def fix_offline_card_bug():
+    conn = pymongo.MongoClient(cfg.srvcfg['ip_mongodb'], cfg.srvcfg['port_mongodb'])
+    db = conn[cfg.srvcfg['dbname_mongodb']]
+    cursor = db.user.find({}, projection={'_id': False})
+
+    print '[db_key] fix_offline_card_bug...'
+    userno = 0
+    for doc in cursor:
+        user_uid = doc['user_uid']
+        if 'kapais' in doc['record']:
+            cards = doc['record']['kapais']
+            if len(cards) > 2000:
+                cards_processed = cut_kapais(cards)
+                userno += 1
+                print '[' + str(userno) + '] ' + 'Fix -- cards too much, user_uid=' + user_uid + ' cardnum=' +\
+                      str(len(cards))
+                db.user.update_one({'user_uid': user_uid}, {'$set': {'record.kapais': cards_processed}})
+        # else:
+        #     print 'no kapais, user_uid=' + user_uid
+
+if __name__ == "__main__":
+    # tornado.options.parse_command_line()
+    # cfg.setup_srvcfg(options.rt)
+    # fix_offline_card_bug()
+    pass

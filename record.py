@@ -161,8 +161,12 @@ class Record(object):
         # check time logic
         self._jjc_mod.data_check(user_uid, record)
 
-        # update time
+        # reset daily
         now = datetime.datetime.now()
+        if record['day'] != now.day or record['month'] != now.month:
+            record['shareTimes'] = 0
+
+        # update time
         record['month'] = now.month
         record['day'] = now.day
         record['hour'] = now.hour
@@ -307,6 +311,10 @@ class Record(object):
             reply_dict = self._handle_reset_continue_pay(user_uid)
         elif cmd == 'set_nickname_and_headidx':
             reply_dict = self._handle_set_nickname_and_headidx(user_uid, body)
+        elif cmd == 'can_share':
+            reply_dict = self._handle_can_share(user_uid)
+        elif cmd == 'share':
+            reply_dict = self._handle_share(user_uid)
         reply_dict['ret'] = 1
 
         # except KeyError:
@@ -356,6 +364,11 @@ class Record(object):
             reply_dict['figureurl'] = opponent_data['zone']['figureurl']
             reply_dict['jjc_cfg'] = opponent_data['jjc']['jjc_cfg']
             reply_dict['r_exp'] = opponent_data['r_exp']
+
+            if cfg.srvcfg['channel'] == 2:
+                reply_dict['headidx'] = opponent_data['headidx']
+                reply_dict['nickname'] = opponent_data['nickname']
+
             return reply_dict
         else:
             return self._jjc_mod.handle_jjc_ranks(user_uid)
@@ -433,24 +446,57 @@ class Record(object):
         return dict()
 
     def _handle_set_nickname_and_headidx(self, user_uid, body):
-        is_ok = False
         reply_dict = dict()
         if body['nickname'] in self._username_cache:
             reply_dict['unique'] = 0
         else:
-            is_ok = True
             self._username_cache.add(body['nickname'])
 
             reply_dict['unique'] = 1
             reply_dict['nickname'] = body['nickname']
             reply_dict['headidx'] = body['headidx']
 
-        if is_ok:
+        # if reply_dict['unique'] == 1:
             self.cache[user_uid].touch += 1
             user_data = self.get_user_data(user_uid)
             user_data['nickname'] = body['nickname']
             user_data['headidx'] = body['headidx']
 
+        return reply_dict
+
+    def _handle_can_share(self, user_uid):
+        reply_dict = dict()
+
+        user_data = self.get_user_data(user_uid)
+        if user_data['shareTimes'] >= 3:
+            reply_dict['can'] = 0
+        else:
+            if user_data['shareTimes'] >= 1:
+                last_share = user_data['lastShareTime']
+                now = datetime.datetime.now()
+                interval = (now - datetime.datetime.strptime(
+                    last_share, "%Y-%m-%d-%H-%M")).total_seconds()
+                if interval < 2 * 3600:
+                    reply_dict['can'] = -1
+                    reply_dict['leftsec'] = 2 * 3600 - interval
+                else:
+                    reply_dict['can'] = 1
+            else:
+                reply_dict['can'] = 1
+        return reply_dict
+
+    def _handle_share(self, user_uid):
+        reply_dict = dict()
+
+        self.cache[user_uid].touch += 1
+        user_data = self.get_user_data(user_uid)
+
+        if user_data['shareTimes'] >= 3:
+            reply_dict['ok'] = False
+        else:
+            user_data['lastShareTime'] = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')
+            user_data['shareTimes'] += 1
+            reply_dict['ok'] = True
         return reply_dict
 
     '''-----------------------------------x--'''
